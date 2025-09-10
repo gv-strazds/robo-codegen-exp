@@ -16,6 +16,7 @@
 import numpy as np
 from typing import List, Optional
 from collections import namedtuple
+import argparse
 
 from isaacsim import SimulationApp
 
@@ -145,6 +146,12 @@ class TableTask3(UR10MultiPickPlace):
         setup_two_tables(scene, self._assets_root_path)
 
 
+# Parse command-line arguments
+parser = argparse.ArgumentParser(description="Choose the task to run.")
+parser.add_argument("--task", choices=["TableTask2", "TableTask3"], default="TableTask3", help="Specify the task to run: TableTask2 or TableTask3.")
+args = parser.parse_args()
+
+
 my_world = World(stage_units_in_meters=1.0)
 cube_size = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units()
 cube_initial_positions = np.array([[0.4, 0.3+i*(CUBE_SIZE_Y+0.01), CUBE_POS_Z] for i in range(7)]) / get_stage_units()
@@ -152,13 +159,22 @@ stack_target_position = np.array([0.4, 0.8, cube_size[2] / 2.0])
 stack_target_position[0] = stack_target_position[0] / get_stage_units()
 stack_target_position[1] = stack_target_position[1] / get_stage_units()
 
-my_task = TableTask3(
-    obj_size=cube_size,
-    stack_target_position=stack_target_position)
+# Choose the task based on the command-line argument
+if args.task == "TableTask2":
+    my_task = TableTask2(
+        initial_positions=cube_initial_positions,
+        obj_size=cube_size,
+        stack_target_position=stack_target_position)
+else:
+    my_task = TableTask3(
+        obj_size=cube_size,
+        stack_target_position=stack_target_position)
+
 my_world.add_task(my_task)
 my_world.reset()
 robot_name = my_task.get_params()["robot_name"]["value"]
 my_ur10 = my_world.scene.get_object(robot_name)
+
 STACKING_CONTROLLER_NAME = "ur10_stacking_controller"
 pick_place_controller=PickPlaceController(
     name=STACKING_CONTROLLER_NAME + "_pick_place_controller",
