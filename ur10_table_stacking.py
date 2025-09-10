@@ -15,7 +15,6 @@
 
 import numpy as np
 from typing import List, Optional
-from collections import namedtuple
 
 from isaacsim import SimulationApp
 
@@ -81,52 +80,25 @@ class TableTask2(UR10MultiPickPlace):
         setup_two_tables(scene, self._assets_root_path)
 
 
-CUBE_SIZE_X = 0.0515
-CUBE_SIZE_Y = 0.0515
-CUBE_SIZE_Z = 0.0515
-CUBE_POS_Z = CUBE_SIZE_Z/2
-
-
-# Define PICK_REGION constants
-UR_X_COORD_0 = 1.0
-UR_Y_COORD_0 = -0.3
-BIN_X_COORD = 0.48 - 0.3 - UR_X_COORD_0
-BIN_Y_COORD = 0.115 - UR_Y_COORD_0
-BIN_SIZE = [0.5, 0.8, 0.05]
-Region2D = namedtuple('Region2D', ['min_x', 'max_x', 'min_y', 'max_y'])
-PICK_REGION = Region2D(BIN_X_COORD - BIN_SIZE[0] / 2, BIN_X_COORD + BIN_SIZE[0] / 2,
-                          BIN_Y_COORD - BIN_SIZE[1] / 2, BIN_Y_COORD + BIN_SIZE[1] / 2)
-
-
 class TableTask3(UR10MultiPickPlace):
-    """Task using UR10 robot to pick-place multiple cubes from a 3x3 grid.
+    """Task using UR10 robot to pick-place multiple cubes.
 
     Args:
-        name (str, optional): Task name identifier. Should be unique if added to the World. Defaults to "table_task_3".
+        name (str, optional): Task name identifier. Should be unique if added to the World. Defaults to "bin_filling".
     """
 
     def __init__(self,
                 name: str = "table_task_3",
-                obj_size: Optional[np.ndarray] = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units(),
+                initial_positions=np.array([[0.4, 0.3, 0.03], [0.45, 0.6, 0.03]]) / get_stage_units(),
+                initial_orientations=None,
+                obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
                 stack_target_position: Optional[np.ndarray] = None,
                 offset: Optional[np.ndarray] = None,
         ) -> None:
-
-        # Create a 3x3 grid of cube positions
-        x_coords = np.linspace(PICK_REGION.min_x + CUBE_SIZE_X, PICK_REGION.max_x - CUBE_SIZE_X, 3)
-        y_coords = np.linspace(PICK_REGION.min_y + CUBE_SIZE_Y, PICK_REGION.max_y - CUBE_SIZE_Y, 3)
-
-        initial_positions = []
-        for x in x_coords:
-            for y in y_coords:
-                initial_positions.append([x, y, CUBE_POS_Z])
-
-        initial_positions = np.array(initial_positions) / get_stage_units()
-
         super().__init__(
-            task_name=name,
+            task_name= name,
             initial_positions=initial_positions,
-            initial_orientations=None,
+            initial_orientations=initial_orientations,
             stack_target_position=stack_target_position,
             obj_size=obj_size,
             offset=offset,
@@ -137,13 +109,17 @@ class TableTask3(UR10MultiPickPlace):
         if self._assets_root_path is None:
             carb.log_error("Could not find Isaac Sim assets folder")
             return
-
-        omni.log.warn(f"TableTask3 init stack_target_position={self._stack_target_position}")
+        omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
         return
 
     def setup_table(self, scene: Scene) -> None:
         setup_two_tables(scene, self._assets_root_path)
 
+
+CUBE_SIZE_X = 0.0515
+CUBE_SIZE_Y = 0.0515
+CUBE_SIZE_Z = 0.0515
+CUBE_POS_Z = CUBE_SIZE_Z/2
 
 my_world = World(stage_units_in_meters=1.0)
 cube_size = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units()
@@ -152,8 +128,36 @@ stack_target_position = np.array([0.4, 0.8, cube_size[2] / 2.0])
 stack_target_position[0] = stack_target_position[0] / get_stage_units()
 stack_target_position[1] = stack_target_position[1] / get_stage_units()
 
+# Define bin constants
+UR_X_COORD_0 = 1.0
+UR_Y_COORD_0 = -0.3
+BIN_X_COORD = 0.48 - 0.3 - UR_X_COORD_0
+BIN_Y_COORD = 0.115 - UR_Y_COORD_0
+BIN_SIZE = [0.5, 0.8, 0.05]
+BIN_SCALE = [1.5, 1.5, 0.5]
+
+bin_width = BIN_SIZE[0] * BIN_SCALE[0]
+bin_height = BIN_SIZE[1] * BIN_SCALE[1]
+
+min_x = BIN_X_COORD - bin_width / 2
+max_x = BIN_X_COORD + bin_width / 2
+min_y = BIN_Y_COORD - bin_height / 2
+max_y = BIN_Y_COORD + bin_height / 2
+
+# Create a 3x3 grid of cube positions
+x_coords = np.linspace(min_x + CUBE_SIZE_X, max_x - CUBE_SIZE_X, 3)
+y_coords = np.linspace(min_y + CUBE_SIZE_Y, max_y - CUBE_SIZE_Y, 3)
+
+new_cube_initial_positions = []
+for x in x_coords:
+    for y in y_coords:
+        new_cube_initial_positions.append([x, y, CUBE_POS_Z])
+
+new_cube_initial_positions = np.array(new_cube_initial_positions) / get_stage_units()
+
 my_task = TableTask3(
     obj_size=cube_size,
+    initial_positions=new_cube_initial_positions,
     stack_target_position=stack_target_position)
 my_world.add_task(my_task)
 my_world.reset()
