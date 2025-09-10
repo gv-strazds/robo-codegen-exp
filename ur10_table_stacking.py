@@ -15,6 +15,7 @@
 
 import numpy as np
 from typing import List, Optional
+from collections import namedtuple
 
 from isaacsim import SimulationApp
 
@@ -85,6 +86,65 @@ CUBE_SIZE_Y = 0.0515
 CUBE_SIZE_Z = 0.0515
 CUBE_POS_Z = CUBE_SIZE_Z/2
 
+
+# Define PICK_REGION constants
+UR_X_COORD_0 = 1.0
+UR_Y_COORD_0 = -0.3
+BIN_X_COORD = 0.48 - 0.3 - UR_X_COORD_0
+BIN_Y_COORD = 0.115 - UR_Y_COORD_0
+BIN_SIZE = [0.5, 0.8, 0.05]
+Region2D = namedtuple('Region2D', ['min_x', 'max_x', 'min_y', 'max_y'])
+PICK_REGION = Region2D(BIN_X_COORD - BIN_SIZE[0] / 2, BIN_X_COORD + BIN_SIZE[0] / 2,
+                          BIN_Y_COORD - BIN_SIZE[1] / 2, BIN_Y_COORD + BIN_SIZE[1] / 2)
+
+
+class TableTask3(UR10MultiPickPlace):
+    """Task using UR10 robot to pick-place multiple cubes from a 3x3 grid.
+
+    Args:
+        name (str, optional): Task name identifier. Should be unique if added to the World. Defaults to "table_task_3".
+    """
+
+    def __init__(self,
+                name: str = "table_task_3",
+                obj_size: Optional[np.ndarray] = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units(),
+                stack_target_position: Optional[np.ndarray] = None,
+                offset: Optional[np.ndarray] = None,
+        ) -> None:
+
+        # Create a 3x3 grid of cube positions
+        x_coords = np.linspace(PICK_REGION.min_x + CUBE_SIZE_X, PICK_REGION.max_x - CUBE_SIZE_X, 3)
+        y_coords = np.linspace(PICK_REGION.min_y + CUBE_SIZE_Y, PICK_REGION.max_y - CUBE_SIZE_Y, 3)
+
+        initial_positions = []
+        for x in x_coords:
+            for y in y_coords:
+                initial_positions.append([x, y, CUBE_POS_Z])
+
+        initial_positions = np.array(initial_positions) / get_stage_units()
+
+        super().__init__(
+            task_name=name,
+            initial_positions=initial_positions,
+            initial_orientations=None,
+            stack_target_position=stack_target_position,
+            obj_size=obj_size,
+            offset=offset,
+            )
+
+        self._packing_bin = None
+        self._assets_root_path = get_assets_root_path_or_die()
+        if self._assets_root_path is None:
+            carb.log_error("Could not find Isaac Sim assets folder")
+            return
+
+        omni.log.warn(f"TableTask3 init stack_target_position={self._stack_target_position}")
+        return
+
+    def setup_table(self, scene: Scene) -> None:
+        setup_two_tables(scene, self._assets_root_path)
+
+
 my_world = World(stage_units_in_meters=1.0)
 cube_size = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units()
 cube_initial_positions = np.array([[0.4, 0.3+i*(CUBE_SIZE_Y+0.01), CUBE_POS_Z] for i in range(7)]) / get_stage_units()
@@ -92,9 +152,8 @@ stack_target_position = np.array([0.4, 0.8, cube_size[2] / 2.0])
 stack_target_position[0] = stack_target_position[0] / get_stage_units()
 stack_target_position[1] = stack_target_position[1] / get_stage_units()
 
-my_task = TableTask2(
+my_task = TableTask3(
     obj_size=cube_size,
-    initial_positions=cube_initial_positions,
     stack_target_position=stack_target_position)
 my_world.add_task(my_task)
 my_world.reset()
