@@ -48,7 +48,7 @@ def main() -> None:
         BIN_SIZE,
         TABLETOP_Z_COORD,
     )
-    from task_stacking import UR10MultiPickPlace
+    from stacking_task import UR10MultiPickPlace
 
     class TableTask2(UR10MultiPickPlace):
         """Task using UR10 robot to pick-place multiple cubes.
@@ -83,7 +83,7 @@ def main() -> None:
             omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
             return
 
-        def setup_table(self, scene: Scene) -> None:
+        def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
 
     class TableTask3(UR10MultiPickPlace):
@@ -119,7 +119,7 @@ def main() -> None:
             omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
             return
 
-        def setup_table(self, scene: Scene) -> None:
+        def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
 
     # Parse command-line arguments

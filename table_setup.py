@@ -45,7 +45,7 @@ GROUND_PLANE_Z_OFFSET = -0.5
 
 UR_COORDS = np.array([0.0, 0.0, 0.0])  # position of the base of the robot
 
-# coordinates of UR Robot (relative to Scene ; before shifting everyting relative to UR robot at origin)
+# coordinates of UR Robot (relative to original Scene layout - before shifting everyting with UR robot at origin)
 #UR_X_COORD_0 = 0.8 #1.0
 #UR_Y_COORD_0 = -0.5 #-0.3
 UR_Z_COORD_0 = -GROUND_PLANE_Z_OFFSET # height of the base of the robot above the ground plane
@@ -103,12 +103,12 @@ cylinder_specs = [
 ([-0.02+BIN_X_COORD, BIN_Y_COORD+0.065, BIN_Z_COORD+0.57], [0.0, 75.8, 39.0]),
 ]
 
-def random_bottle_spawn_transform():
-    BOTTLE_SPAWN_MIN_Z = 0.25   # 1.0
-    BOTTLE_SPAWN_MAX_Z = 0.55  # 1.5
-    x = random.uniform(PICK_REGION.min_x+0.2, PICK_REGION.max_x-0.2)
-    y = random.uniform(PICK_REGION.min_y+0.2, PICK_REGION.max_y-0.2)
-    z = random.uniform(BIN_Z_COORD + BOTTLE_SPAWN_MIN_Z, BIN_Z_COORD + BOTTLE_SPAWN_MAX_Z)  # high enough to be out of the way
+def random_spawn_transform(spawn_region: Region2D, z_baseline=BIN_Z_COORD):
+    _SPAWN_MIN_Z = 0.25   # 1.0
+    _SPAWN_MAX_Z = 0.55  # 1.5
+    x = random.uniform(spawn_region.min_x+0.2, spawn_region.max_x-0.2)
+    y = random.uniform(spawn_region.min_y+0.2, spawn_region.max_y-0.2)
+    z = random.uniform(z_baseline + _SPAWN_MIN_Z, z_baseline + _SPAWN_MAX_Z)  # high enough to be out of the way
     position = np.array([x, y, z])
     # position = np.array([0.3, 0.3, 0.3]) / get_stage_units()
     # jj = random.random() * 0.02 - 0.01

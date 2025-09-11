@@ -110,17 +110,10 @@ class UR10MultiPickPlace(tasks.BaseTask):
         self._task_objects[self._robot.name] = self._robot
         self._move_task_objects_to_their_frame()
         # END --- isaacsim.core.api.tasks.Stacking (BaseStacking)
-        self.setup_table(scene)
+        self.setup_workspace(scene)
 
     def setup_table(self, scene:Scene):
-        DROPZONE_X = 1.0-0.6+0.2
-        DROPZONE_Y = 1.0-0.62
-        DROPZONE_Z = 0 # -0.59374
-        TABLE_THICKNESS = 0.1
-        drop_zone = FixedCuboid(prim_path="/World/drop_zone",
-            position=np.array([DROPZONE_X+.05-0.2-(2*0.21)/2, DROPZONE_Y+(2*0.31)/2, DROPZONE_Z-TABLE_THICKNESS/2]),
-            scale=np.array([0.21*3*2, (0.31*3), TABLE_THICKNESS]),
-            color=np.array([.2, 0, .3]))
+        return
 
     def set_robot(self) -> UR10:
         """[summary]
@@ -299,119 +292,4 @@ class UR10MultiPickPlace(tasks.BaseTask):
                 "target_orientation": target_obj_orientation,
             }
         return observations
-
-
-class UR10PickPlaceTask(tasks.PickPlace):
-    """[summary]
-
-    Args:
-        name (str, optional): [description]. Defaults to "ur10_pick_place".
-        cube_initial_position (Optional[np.ndarray], optional): [description]. Defaults to None.
-        cube_initial_orientation (Optional[np.ndarray], optional): [description]. Defaults to None.
-        target_position (Optional[np.ndarray], optional): [description]. Defaults to None.
-        cube_size (Optional[np.ndarray], optional): [description]. Defaults to None.
-        offset (Optional[np.ndarray], optional): [description]. Defaults to None.
-    """
-
-    def __init__(
-        self,
-        name: str = "ur10_pick_place",
-        cube_initial_position: Optional[np.ndarray] = None,
-        cube_initial_orientation: Optional[np.ndarray] = None,
-        target_position: Optional[np.ndarray] = None,
-        cube_size: Optional[np.ndarray] = None,
-        offset: Optional[np.ndarray] = None,
-    ) -> None:
-        if cube_size is None:
-            cube_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
-        if target_position is None:
-            target_position = np.array([0.7, 0.7, cube_size[2] / 2.0])
-            target_position[0] = target_position[0] / get_stage_units()
-            target_position[1] = target_position[1] / get_stage_units()
-        super().__init__(
-            name=name,
-            cube_initial_position=cube_initial_position,
-            cube_initial_orientation=cube_initial_orientation,
-            target_position=target_position,
-            cube_size=cube_size,
-            offset=offset,
-        )
-        self._ur10_asset_path = "/home/gstrazds/workspaces/sim_experiments/SimEnvs/" \
-            "Collected_ur10_bin_filling/ur10_bin_filling.usd"
-        return
-
-    def set_up_scene(self, scene: Scene) -> None:
-        """Loads the stage USD and adds the robot and packing bin to the World's scene.
-
-        Args:
-            scene (Scene): The world's scene.
-        """
-        # super().set_up_scene(scene)
-        self._scene = scene  # isaacsim.core.api.tasks.BaseTask
-        # BEGIN ---- isaacsim.core.api.tasks.PickPlace:
-        # INCLUDED in ur10_table_scene .usd  #scene.add_default_ground_plane() z_position=-0.5)
-        cube_prim_path = find_unique_string_name(
-            initial_name="/World/Cube", is_unique_fn=lambda x: not is_prim_path_valid(x)
-        )
-        cube_name = find_unique_string_name(initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x))
-        self._cube = scene.add(
-            DynamicCuboid(
-                name=cube_name,
-                position=self._cube_initial_position,
-                orientation=self._cube_initial_orientation,
-                prim_path=cube_prim_path,
-                scale=self._cube_size,
-                size=1.0,
-                color=np.array([1, 1, 0]),
-            )
-        )
-        self._task_objects[self._cube.name] = self._cube
-        self._robot = self.set_robot()
-        scene.add(self._robot)
-        self._task_objects[self._robot.name] = self._robot
-        self._move_task_objects_to_their_frame()
-        # END --- isaacsim.core.api.tasks.PickPlace
-        self.setup_table(scene)
-
-    def setup_table(self, scene:Scene):
-        DROPZONE_X = 1.0-0.6+0.2
-        DROPZONE_Y = 1.0-0.62
-        DROPZONE_Z = 0 # -0.59374
-        TABLE_THICKNESS = 0.1
-        drop_zone = FixedCuboid(prim_path="/World/drop_zone",
-            position=np.array([DROPZONE_X+.05-0.2-(2*0.21)/2, DROPZONE_Y+(2*0.31)/2, DROPZONE_Z-TABLE_THICKNESS/2]),
-            scale=np.array([0.21*3*2, (0.31*3), TABLE_THICKNESS]),
-            color=np.array([.2, 0, .3]))
-
-    def set_robot(self) -> UR10:
-        """[summary]
-
-        Returns:
-            UR10: [description]
-        """
-        add_reference_to_stage(usd_path=self._ur10_asset_path, prim_path="/World/Scene")
-        self._ur10_robot = UR10(prim_path="/World/Scene/ur10", name="my_ur10", attach_gripper=True)
-
-        self._ur10_robot.set_joints_default_state(
-            positions=np.array([-np.pi / 2, -np.pi / 2, -np.pi / 2, -np.pi / 2, np.pi / 2, 0])
-        )
-        return self._ur10_robot
-
-    def pre_step(self, time_step_index: int, simulation_time: float) -> None:
-        """[summary]
-
-        Args:
-            time_step_index (int): [description]
-            simulation_time (float): [description]
-        """
-        tasks.PickPlace.pre_step(self, time_step_index=time_step_index, simulation_time=simulation_time)
-        self._ur10_robot.gripper.update()
-        return
-
-    def get_observations(self) -> dict:
-        obs = super().get_observations()
-        if "my_ur10" in obs:
-            end_effector_position, end_effector_orientation = self._ur10_robot.end_effector.get_world_pose()
-            obs["my_ur10"]["end_effector_orientation"] = end_effector_orientation
-        return obs
 
