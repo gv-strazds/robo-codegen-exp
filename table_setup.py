@@ -133,7 +133,7 @@ def random_bottle_spawn_transform():
     return position, quat
 
 
-def setup_two_tables(scene:Scene, assets_root_path=None) -> None:
+def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add_bin=True) -> None:
     if assets_root_path is None:
         assets_root_path = get_assets_root_path()
     # GroundPlane(prim_path="/World/groundPlane", size=3, color=np.array([0.1, 0.15, 0.25]))
@@ -161,6 +161,21 @@ def setup_two_tables(scene:Scene, assets_root_path=None) -> None:
         scale=np.array([0.21*3+0.3, (0.31*3), TABLE_THICKNESS]),
         color=np.array([.2, 0, .3]))
 
+    # add a stand for the UR robot so that it doesn't appear to be hovering above the ground plane
+    stand_prim = prims.create_prim(
+        "/World/UR_mount",
+        "Xform",
+        position=UR_COORDS,
+        # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
+        scale=np.array([1.0, 1.0, UR_Z_COORD_0]),
+        usd_path=assets_root_path
+        + "/Isaac/Props/Mounts/ur10_mount.usd",
+    )
+    # # Attach Rigid Body and Collision Preset
+    # rigid_api = UsdPhysics.RigidBodyAPI.Apply(stand_prim)
+    # rigid_api.CreateRigidBodyEnabledAttr(True)
+    # UsdPhysics.CollisionAPI.Apply(stand_prim)
+
     n = 0
     for y in DROPZONE_GRID_YS:
         for x in DROPZONE_GRID_XS:
@@ -187,62 +202,86 @@ def setup_two_tables(scene:Scene, assets_root_path=None) -> None:
             #     # usd_path="/home/gstrazds/workspaces/sim_experiments/SimEnvs/assets/madara_pad.usd",
             #     usd_path="/home/gstrazds/workspaces/sim_experiments/SimEnvs/assets/pad_v3.usd",
             # )
+    if standard_objs:
+        # add some objects on the table
+        add_usd_asset(
+            scene,
+            asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/003_cracker_box.usd", 
+            obj_name="cracker_box",
+            position=np.array([-0.2-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.15]),
+            orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
+            assets_root_path=assets_root_path
+        )
 
-    # add some objects, spread evenly along the X axis
-    # with a fixed offset from the robot in the Y and Z
-    prims.create_prim(
-        "/cracker_box",
-        "Xform",
-        position=np.array([-0.2-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.15]),
+        add_usd_asset(
+            scene,
+            asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/004_sugar_box.usd",
+            obj_name="sugar_box",
+            position=np.array([-0.07-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.1]),
+            orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 1, 0), -90)),
+            assets_root_path=assets_root_path
+        )
+        add_usd_asset(
+            scene,
+            asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/005_tomato_soup_can.usd",
+            obj_name="soup_can",
+            position=np.array([0.1-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.10]),
         orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
-        usd_path=assets_root_path
-        + "/Isaac/Props/YCB/Axis_Aligned_Physics/003_cracker_box.usd",
-    )
-    prims.create_prim(
-        "/sugar_box",
-        "Xform",
-        position=np.array([-0.07-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.1]),
-        orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 1, 0), -90)),
-        usd_path=assets_root_path
-        + "/Isaac/Props/YCB/Axis_Aligned_Physics/004_sugar_box.usd",
-    )
-    prims.create_prim(
-        "/soup_can",
-        "Xform",
-        position=np.array([0.1-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.10]),
-        orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
-        usd_path=assets_root_path
-        + "/Isaac/Props/YCB/Axis_Aligned_Physics/005_tomato_soup_can.usd",
-    )
-    prims.create_prim(
-        "/mustard_bottle",
-        "Xform",
-        position=np.array([-0.065-UR_X_COORD_0, 0.065-UR_Y_COORD_0, TABLETOP_Z_COORD+0.12]),
-        orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
-        usd_path=assets_root_path
-        + "/Isaac/Props/YCB/Axis_Aligned_Physics/006_mustard_bottle.usd",
-    )
+            assets_root_path=assets_root_path
+        )
+        add_usd_asset(
+            scene,
+            asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/006_mustard_bottle.usd",
+            obj_name="mustard_bottle",
+            position=np.array([-0.065-UR_X_COORD_0, 0.065-UR_Y_COORD_0, TABLETOP_Z_COORD+0.12]),
+            orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
+            assets_root_path=assets_root_path
+        )
 
-    if True: #False:
-        bin_prim = prims.create_prim(
-            prim_path="/KLT_Bin",
-            prim_type="Xform",
+    if add_bin:
+        add_usd_asset(
+            scene,
+            asset_path=assets_root_path+"/Isaac/Props/KLT_Bin/small_KLT.usd",
+            obj_name="KLT_Bin",
             position=np.array([BIN_X_COORD, BIN_Y_COORD, TABLETOP_Z_COORD+0.05]),
-            # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
+            orientation=None, #rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
             scale=np.array(BIN_SCALE),  # a shallow bin, to make it easier to pick up the bottles
-            usd_path=assets_root_path + "/Isaac/Props/KLT_Bin/small_KLT.usd",
-    )
+        )
 
-    stand_prim = prims.create_prim(
-        "/World/UR_mount",
-        "Xform",
-        position=UR_COORDS,
-        # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
-        scale=np.array([1.0, 1.0, UR_Z_COORD_0]),
-        usd_path=assets_root_path
-        + "/Isaac/Props/Mounts/ur10_mount.usd",
-    )
-    # # Attach Rigid Body and Collision Preset
-    # rigid_api = UsdPhysics.RigidBodyAPI.Apply(stand_prim)
-    # rigid_api.CreateRigidBodyEnabledAttr(True)
-    # UsdPhysics.CollisionAPI.Apply(stand_prim)
+
+def add_usd_asset(scene,
+                  asset_path,
+                  obj_name,
+                  position,
+                  orientation=None,
+                  scale=None,
+                  assets_root_path=None,
+                  prim_path=None,
+                  scene_path_root="/"
+                  ):
+    if not prim_path:
+        assert obj_name is not None
+        prim_scene_path = f"{scene_path_root}{obj_name}"
+    elif not prim_path.startswith("/"):
+        prim_scene_path = f"{scene_path_root}{prim_path}"
+    else:
+        prim_scene_path = prim_path
+    if not obj_name:
+        obj_name = prim_scene_path.split("/")[-1]
+    if assets_root_path and not asset_path.startswith(assets_root_path):
+        abs_file_path = assets_root_path + asset_path
+    else:
+        abs_file_path = asset_path
+    obj_prim = prims.create_prim(
+            prim_scene_path,
+            "Xform",
+            position=position,
+            orientation=orientation,
+            scale=scale,
+            usd_path=abs_file_path
+        )
+    xform_prim = SingleXFormPrim(prim_scene_path, name=obj_name)
+    omni.log.warn(f"add_usd_asset: {abs_file_path} XFormPrim.name={xform_prim.name} {prim_scene_path}")
+    scene.add(xform_prim)
+    return xform_prim
+
