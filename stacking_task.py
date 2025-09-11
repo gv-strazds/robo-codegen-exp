@@ -18,6 +18,7 @@ from typing import List, Optional
 import numpy as np
 
 import isaacsim.core.api.tasks as tasks  # tasks.BaseTask, tasks.PickPlace, 
+import isaacsim.robot.manipulators.controllers as manipulators_controllers
 # from isaacsim.core.api.tasks import BaseTask
 
 from isaacsim.core.utils.prims import is_prim_path_valid
@@ -26,6 +27,9 @@ from isaacsim.core.api.scenes.scene import Scene
 from isaacsim.core.utils.string import find_unique_string_name
 from isaacsim.robot.manipulators.examples.universal_robots import UR10
 from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, VisualCuboid, DynamicCylinder
+from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import (
+    PickPlaceController,
+)
 
 class UR10MultiPickPlace(tasks.BaseTask):
     """[summary]
@@ -195,6 +199,42 @@ class UR10MultiPickPlace(tasks.BaseTask):
         from isaacsim.robot.manipulators.grippers.parallel_gripper import ParallelGripper
         if isinstance(self._robot.gripper, ParallelGripper):
             self._robot.gripper.set_joint_positions(self._robot.gripper.joint_opened_positions)
+        my_ur10 = self._robot
+
+        STACKING_CONTROLLER_NAME = "ur10_stacking_controller"
+        pick_place_controller = PickPlaceController(
+            name=STACKING_CONTROLLER_NAME + "_pick_place_controller",
+            gripper=my_ur10.gripper,
+            robot_articulation=my_ur10,
+            events_dt=[
+                1.0 / 125,  # Move above obj
+                1.0 / 100,  # Down
+                1.0 / 10,   # Wait
+                1.0 / 4,    # Close gripper
+                1.0 / 50,   # Lift
+                1.0 / 200,  # Move above target
+                1.0 / 100,  # Down
+                1.0,        # Release gripper
+                1.0 / 50,   # Move up
+                1.0 / 2,    # Return towards start
+            ],
+        )
+        self._task_controller = manipulators_controllers.StackingController(
+            name=STACKING_CONTROLLER_NAME,
+            pick_place_controller=pick_place_controller,
+            picking_order_cube_names=self.get_obj_names(),
+            robot_observation_name=self._robot.name,
+        )
+        self._articulation_controller = self._robot.get_articulation_controller()
+        self._task_controller.reset()
+        return
+
+    def task_step(self):
+        observations = self.get_observations()  #merges observations from all currently running tasks
+        actions = self._task_controller.forward(
+            observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
+        )
+        self._articulation_controller.apply_action(actions)
         return
 
     def get_obj_names(self) -> List[str]:

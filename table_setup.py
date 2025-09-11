@@ -136,7 +136,7 @@ def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add
         eye=np.array([0.5, 2.0, 1.2]),
         target=TABLETOP_CENTER_POINT+[0.5, 0, 0])
 
-    table = FixedCuboid(prim_path="/World/table",
+    table_1 = FixedCuboid(prim_path="/World/table_2", name="table_1",
         position=TABLE_COORDS,
         scale=TABLE_SIZE,
         color=np.array([0.2, 0.3, 0.]))
@@ -147,7 +147,7 @@ def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add
         scale=np.array([.3, .3, _support_height]),
         color=np.array([.2, .3, 0.]))
 
-    drop_zone = FixedCuboid(prim_path="/World/drop_zone",
+    drop_zone = FixedCuboid(prim_path="/World/work_zone", name="table_1",
         position=np.array([DROPZONE_X+.05-0.2-(2*0.21)/2, DROPZONE_Y+(2*0.31)/2, DROPZONE_Z-TABLE_THICKNESS/2]),
         scale=np.array([0.21*3+0.3, (0.31*3), TABLE_THICKNESS]),
         color=np.array([.2, 0, .3]))

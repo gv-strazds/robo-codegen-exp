@@ -132,101 +132,68 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    CUBE_SIZE_X = 0.0515
-    CUBE_SIZE_Y = 0.0515
-    CUBE_SIZE_Z = 0.0515
-    CUBE_POS_Z = CUBE_SIZE_Z / 2 + 0.025
+    cube_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
+    CUBE_POS_Z = cube_size[2] / 2 + 0.025
 
     my_world = World(stage_units_in_meters=1.0)
-    cube_size = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units()
-    cube_initial_positions = (
-        np.array([[0.4, 0.3 + i * (CUBE_SIZE_Y + 0.01), CUBE_POS_Z] for i in range(7)])
-        / get_stage_units()
-    )
-    stack_target_position = np.array([0.4, 0.8, cube_size[2] / 2.0])
-    stack_target_position[0] = stack_target_position[0] / get_stage_units()
-    stack_target_position[1] = stack_target_position[1] / get_stage_units()
-
-    # Define bin constants
-    bin_width = BIN_SIZE[0]
-    bin_height = BIN_SIZE[1]
-
-    min_x = BIN_X_COORD - bin_width / 2 + 0.05
-    max_x = BIN_X_COORD + bin_width / 2 - 0.05
-    min_y = BIN_Y_COORD - bin_height / 2 + 0.05
-    max_y = BIN_Y_COORD + bin_height / 2 - 0.05
-
-    # Create a 3x3 grid of cube positions
-    x_coords = np.linspace(min_x + CUBE_SIZE_X, max_x - CUBE_SIZE_X, 3)
-    y_coords = np.linspace(min_y + CUBE_SIZE_Y, max_y - CUBE_SIZE_Y, 3)
-
-    new_cube_initial_positions = []
-    for x in x_coords:
-        for y in y_coords:
-            new_cube_initial_positions.append([x, y, TABLETOP_Z_COORD + CUBE_POS_Z])
-
-    new_cube_initial_positions = np.array(new_cube_initial_positions) / get_stage_units()
-
     # Choose the task based on the command-line argument
     if args.task == "TableTask2":
+        cube_initial_positions = (
+            np.array([[0.4, 0.3 + i * (cube_size[1] + 0.01), CUBE_POS_Z] for i in range(7)])
+            / get_stage_units()
+        )
         my_task = TableTask2(
             initial_positions=cube_initial_positions,
             obj_size=cube_size,
-            stack_target_position=stack_target_position,
+            # stack_target_position=stack_target_position,
         )
     else:
+        # Define bin constants
+        bin_width = BIN_SIZE[0]
+        bin_height = BIN_SIZE[1]
+
+        min_x = BIN_X_COORD - bin_width / 2 + 0.05
+        max_x = BIN_X_COORD + bin_width / 2 - 0.05
+        min_y = BIN_Y_COORD - bin_height / 2 + 0.05
+        max_y = BIN_Y_COORD + bin_height / 2 - 0.05
+
+        # Create a 3x3 grid of cube positions
+        x_coords = np.linspace(min_x + cube_size[0], max_x - cube_size[0], 3)
+        y_coords = np.linspace(min_y + cube_size[1], max_y - cube_size[1], 3)
+
+        _cube_initial_positions = [
+            [x, y, TABLETOP_Z_COORD + CUBE_POS_Z] for x in x_coords for y in y_coords]
+
         my_task = TableTask3(
-            initial_positions=new_cube_initial_positions,
+            initial_positions=np.array(_cube_initial_positions),
             obj_size=cube_size,
-            stack_target_position=stack_target_position,
+            # stack_target_position=stack_target_position,
         )
 
     my_world.add_task(my_task)
     my_world.reset()
-    robot_name = my_task.get_params()["robot_name"]["value"]
-    my_ur10 = my_world.scene.get_object(robot_name)
-
-    STACKING_CONTROLLER_NAME = "ur10_stacking_controller"
-    pick_place_controller = PickPlaceController(
-        name=STACKING_CONTROLLER_NAME + "_pick_place_controller",
-        gripper=my_ur10.gripper,
-        robot_articulation=my_ur10,
-        events_dt=[
-            1.0 / 125,  # Move above obj
-            1.0 / 100,  # Down
-            1.0 / 10,   # Wait
-            1.0 / 4,    # Close gripper
-            1.0 / 50,   # Lift
-            1.0 / 200,  # Move above target
-            1.0 / 100,  # Down
-            1.0,        # Release gripper
-            1.0 / 50,   # Move up
-            1.0 / 2,    # Return towards start
-        ],
-    )
-    my_controller = manipulators_controllers.StackingController(
-        name=STACKING_CONTROLLER_NAME,
-        pick_place_controller=pick_place_controller,
-        picking_order_cube_names=my_task.get_obj_names(),
-        robot_observation_name=robot_name,
-    )
-    articulation_controller = my_ur10.get_articulation_controller()
 
     reset_needed = False
     while simulation_app.is_running():
-        my_world.step(render=True)
+        my_world.step(render=True)  # invokes Task.pre_step() on all tasks, then Simulation.step()
         if my_world.is_stopped() and not reset_needed:
             reset_needed = True
         if my_world.is_playing():
             if reset_needed:
                 my_world.reset()
-                my_controller.reset()
+                # my_controller.reset()
                 reset_needed = False
-            observations = my_world.get_observations()
-            actions = my_controller.forward(
-                observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
-            )
-            articulation_controller.apply_action(actions)
+            current_tasks = my_world.get_current_tasks()
+            for task_name in current_tasks:
+                task = current_tasks[task_name]
+                if hasattr(task,"task_step"):
+                    task.task_step()
+            # The following has been moved into UR10MultiPickPlace.task_step()
+            # observations = my_world.get_observations()  #merges observations from all currently running tasks
+            # actions = my_controller.forward(
+            #     observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
+            # )
+            # articulation_controller.apply_action(actions)
 
     simulation_app.close()
 
