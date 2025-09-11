@@ -117,10 +117,12 @@ def add_prim_asset(scene,
     obj_prim_path = find_unique_string_name(
         initial_name=prim_scene_path, is_unique_fn=lambda x: not is_prim_path_valid(x)
     )
-    if color in COLOR_MAP:
-        color_value = np.array(COLOR_MAP[color].value)
+    # Accept both named colors and explicit RGB triples
+    if isinstance(color, (list, tuple, np.ndarray)):
+        color_value = np.array(color)
+    elif isinstance(color, str) and color.lower() in COLOR_MAP:
+        color_value = np.array(COLOR_MAP[color.lower()].value)
     else:
-        # assert color in COLOR_MAP, color
         color_value = np.array(BasicColor.RED.value)
     prim = scene.add(
             PRIMS_MAP[asset_type](

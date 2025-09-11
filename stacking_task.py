@@ -29,6 +29,7 @@ from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, VisualCuboid, 
 from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import (
     PickPlaceController,
 )
+from asset_utils import add_prim_asset
 
 
 class UR10MultiPickPlace(tasks.BaseTask):
@@ -83,34 +84,37 @@ class UR10MultiPickPlace(tasks.BaseTask):
 
         # BEGIN --- isaacsim.core.api.tasks.Stacking (BaseStacking)
         # INCLUDED in ur10_table_scene .usd  #scene.add_default_ground_plane() z_position=-0.5)
-        for i in range(self._num_of_pick_objs):
-            color = np.random.uniform(size=(3,))
-            cube_prim_path = find_unique_string_name(
-                initial_name="/World/Cube", is_unique_fn=lambda x: not is_prim_path_valid(x)
-            )
-            obj_name = find_unique_string_name(
-                initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x)
-            )
-            self._pick_objs.append(
-                scene.add(
-                    DynamicCuboid(
-                        name=obj_name,
-                        position=self._initial_positions[i],
-                        orientation=self._initial_orientations[i],
-                        prim_path=cube_prim_path,
-                        scale=self._obj_size,
-                        size=1.0,
-                        color=color
-                    )
-                )
-            )
-            self._task_objects[self._pick_objs[-1].name] = self._pick_objs[-1]
+        self.add_source_objects(scene)
         self._robot = self.set_robot()
         scene.add(self._robot)
         self._task_objects[self._robot.name] = self._robot
         self._move_task_objects_to_their_frame()
         # END --- isaacsim.core.api.tasks.Stacking (BaseStacking)
         self.setup_workspace(scene)
+
+    def add_source_objects(self, scene: Scene) -> None:
+        """Add source (pickable) objects to the scene.
+
+        Mirrors the style of TableTask2.add_target_objects() and uses
+        asset_utils.add_prim_asset for object creation.
+        """
+        for i in range(self._num_of_pick_objs):
+            color = np.random.uniform(size=(3,))
+            obj_name = find_unique_string_name(
+                initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x)
+            )
+            prim = add_prim_asset(
+                scene,
+                asset_type="cube",
+                obj_name=obj_name,
+                position=self._initial_positions[i],
+                orientation=self._initial_orientations[i],
+                scale=self._obj_size,
+                scene_path_root="/World/",
+                color=color,
+            )
+            self._pick_objs.append(prim)
+            self._task_objects[prim.name] = prim
 
     def setup_table(self, scene:Scene):
         return
@@ -331,4 +335,3 @@ class UR10MultiPickPlace(tasks.BaseTask):
                 "target_orientation": target_obj_orientation,
             }
         return observations
-

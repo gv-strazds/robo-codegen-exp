@@ -1,7 +1,7 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- Core Python scripts: `task_stacking.py`, `ur10_table_stacking.py`, `table_setup.py` (entry points/demos).
+- Core Python scripts: `stacking_task.py` (task logic), `ur10_table_stacking.py` (entrypoint), `table_setup.py` (scene helpers).
 - Isaac Sim snapshot (read-only reference) under `exts/isaacsim/`:
   - `core/` — utilities, prims, API layers, and tests under `core/**/tests`.
   - `robot/manipulators/` — controllers, grippers, examples, and OGN nodes.
@@ -9,7 +9,7 @@
 - Assets/examples: icons (`*.svg`) and sample USD files for tests.
 
 ## Build, Test, and Development Commands
-- Run demos: `python task_stacking.py` (see scripts above for variants).
+- Run demo: `python ur10_table_stacking.py --task TableTask3` (or `TableTask2`).
 - Run tests for the copied Isaac modules: `pytest exts/isaacsim -q`.
 - Run a focused test file: `pytest exts/isaacsim/core/api/tests/test_world.py -q`.
 Notes: The repo is pure Python; no build step. Running demos assumes a working Isaac Sim Python environment on your machine.
@@ -32,4 +32,3 @@ Notes: The repo is pure Python; no build step. Running demos assumes a working I
 ## Agent-Specific Tips
 - Validate imports using repository-relative paths used by IDEs (see prior commits improving import resolution).
 - Keep changes minimal to avoid diverging from the reference `exts/isaacsim` snapshot; prefer adapters/wrappers in top-level scripts over editing reference copies.
-
