@@ -60,7 +60,7 @@ def main() -> None:
         def __init__(
             self,
             name: str = "table_task_2",
-            initial_positions=np.array([[0.4, 0.3, 0.03], [0.45, 0.6, 0.03]]) / get_stage_units(),
+            initial_positions=None,
             initial_orientations=None,
             obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
             stack_target_position: Optional[np.ndarray] = None,
@@ -96,7 +96,7 @@ def main() -> None:
         def __init__(
             self,
             name: str = "table_task_3",
-            initial_positions=np.array([[0.4, 0.3, 0.03], [0.45, 0.6, 0.03]]) / get_stage_units(),
+            initial_positions=None,
             initial_orientations=None,
             obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
             stack_target_position: Optional[np.ndarray] = None,
@@ -133,14 +133,12 @@ def main() -> None:
     args = parser.parse_args()
 
     cube_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
-    CUBE_POS_Z = cube_size[2] / 2 + 0.025
 
     my_world = World(stage_units_in_meters=1.0)
     # Choose the task based on the command-line argument
     if args.task == "TableTask2":
         cube_initial_positions = (
-            np.array([[0.4, 0.3 + i * (cube_size[1] + 0.01), CUBE_POS_Z] for i in range(7)])
-            / get_stage_units()
+            np.array([[0.4, 0.3 + i*(cube_size[1] + 0.01), cube_size[2]/2] for i in range(7)]) / get_stage_units()
         )
         my_task = TableTask2(
             initial_positions=cube_initial_positions,
@@ -161,6 +159,7 @@ def main() -> None:
         x_coords = np.linspace(min_x + cube_size[0], max_x - cube_size[0], 3)
         y_coords = np.linspace(min_y + cube_size[1], max_y - cube_size[1], 3)
 
+        CUBE_POS_Z = cube_size[2]/2 + 0.025  # Start a bit higher, above the floor of the picking bin
         _cube_initial_positions = [
             [x, y, TABLETOP_Z_COORD + CUBE_POS_Z] for x in x_coords for y in y_coords]
 
