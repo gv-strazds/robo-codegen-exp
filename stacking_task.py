@@ -46,9 +46,6 @@ class UR10MultiPickPlace(tasks.BaseTask):
         obj_size: Optional[np.ndarray] = None,
         offset: Optional[np.ndarray] = None,
     ) -> None:
-        if stack_target_position is None:
-            stack_target_position = np.array([0.7, 0.7, 0]) / get_stage_units()
-
         # BEGIN --- isaacsim.core.api.tasks.Stacking (BaseStacking) .__init__
         super().__init__(name=task_name, offset=offset) #super=isaacsim.core.api.tasks.BaseTask
         self._robot = None
@@ -61,9 +58,8 @@ class UR10MultiPickPlace(tasks.BaseTask):
         self._obj_size = obj_size
         if self._obj_size is None:
             self._obj_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
-        if stack_target_position is None:
-            self._stack_target_position = np.array([-0.3, -0.3, 0]) / get_stage_units()
-        self._stack_target_position = self._stack_target_position + self._offset
+        if stack_target_position is not None:
+            self._stack_target_position = self._stack_target_position + self._offset
         self._pick_objs = []
         self._target_objs = []
         self._num_of_target_objs = 0
@@ -277,13 +273,16 @@ class UR10MultiPickPlace(tasks.BaseTask):
                 )
             else:
                 target_orientation = None
-                target_position = np.array(
-                    [
-                        self._stack_target_position[0],
-                        self._stack_target_position[1],
-                        (self._obj_size[2] * i) + self._obj_size[2] / 2.0,
-                    ]
-                )
+                if self._stack_target_position is not None:
+                    target_position = np.array(
+                        [
+                            self._stack_target_position[0],
+                            self._stack_target_position[1],
+                            (self._obj_size[2] * i) + self._obj_size[2] / 2.0,
+                        ]
+                    )
+                else:
+                    target_position = np.array([0.3, 0.3, 0]) / get_stage_units()
             observations[self._pick_objs[i].name] = {
                 "position": obj_position,
                 "orientation": obj_orientation,
