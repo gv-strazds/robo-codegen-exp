@@ -16,7 +16,6 @@
 # from abc import ABC, abstractmethod
 from typing import List, Optional
 import numpy as np
-
 import isaacsim.core.api.tasks as tasks  # tasks.BaseTask, tasks.PickPlace, 
 import isaacsim.robot.manipulators.controllers as manipulators_controllers
 # from isaacsim.core.api.tasks import BaseTask
@@ -30,6 +29,7 @@ from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, VisualCuboid, 
 from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import (
     PickPlaceController,
 )
+
 
 class UR10MultiPickPlace(tasks.BaseTask):
     """[summary]
@@ -100,7 +100,7 @@ class UR10MultiPickPlace(tasks.BaseTask):
                         prim_path=cube_prim_path,
                         scale=self._obj_size,
                         size=1.0,
-                        color=color,
+                        color=color
                     )
                 )
             )

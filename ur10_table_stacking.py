@@ -16,7 +16,7 @@
 import argparse
 import numpy as np
 from typing import Optional
-
+import random
 
 def main() -> None:
     # Defer Isaac imports until after SimulationApp is created
@@ -47,8 +47,26 @@ def main() -> None:
         BIN_Z_COORD,
         BIN_SIZE,
         TABLETOP_Z_COORD,
+        DROPZONE_X, DROPZONE_Y, DROPZONE_Z,
     )
     from stacking_task import UR10MultiPickPlace
+    from asset_utils import add_prim_asset
+
+    DROPZONE_GRID_WIDTH = 3
+    DROPZONE_GRID_HEIGHT = 4
+    DROPZONE_GRID_DEPTH = 4
+
+    GRID_DX = -0.15
+    x_shift = 0.05 - 0.2
+    GRID_DY = 0.15
+    z_shift = 0.06
+    GRID_DZ = 0.135
+
+    DROPZONE_GRID_XS = [DROPZONE_X+i*GRID_DX+x_shift for i in range(DROPZONE_GRID_WIDTH)]  # [1.00, 0.79, 0.58])   
+    DROPZONE_GRID_YS = [DROPZONE_Y+(i*GRID_DY) for i in range(DROPZONE_GRID_HEIGHT)]  #[-0.62, -0.31, 0]
+    h = GRID_DZ
+    DROPZONE_GRID_ZS = [DROPZONE_Z + ((i) * h) + h / 2 + z_shift for i in range(DROPZONE_GRID_DEPTH)]
+    BLOCK_SIZE=0.0515
 
     class TableTask2(UR10MultiPickPlace):
         """Task using UR10 robot to pick-place multiple cubes.
@@ -59,15 +77,16 @@ def main() -> None:
 
         def __init__(
             self,
-            name: str = "table_task_2",
+            task_name: str = "table_task_2",
             initial_positions=None,
             initial_orientations=None,
+            target_positions=None,
             obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
             stack_target_position: Optional[np.ndarray] = None,
             offset: Optional[np.ndarray] = None,
         ) -> None:
             super().__init__(
-                task_name=name,
+                task_name=task_name,
                 initial_positions=initial_positions,
                 initial_orientations=initial_orientations,
                 stack_target_position=stack_target_position,
@@ -75,7 +94,9 @@ def main() -> None:
                 offset=offset,
             )
 
-            self._packing_bin = None
+            self.target_asset_type="cube"
+            self.target_colors=["blue"]
+            self._target_positions = [[x, y, DROPZONE_Z+0.001+BLOCK_SIZE/2] for y in DROPZONE_GRID_YS for x in DROPZONE_GRID_XS]
             self._assets_root_path = get_assets_root_path_or_die()
             if self._assets_root_path is None:
                 carb.log_error("Could not find Isaac Sim assets folder")
@@ -83,10 +104,30 @@ def main() -> None:
             omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
             return
 
+        def add_target_objects(self, scene: Scene) -> None:
+            for i, target_pos in enumerate(self._target_positions):
+                block_name=f"target_{i+1}"
+                add_prim_asset(scene, asset_type=self.target_asset_type, obj_name=block_name, prim_path="/World/"+block_name,
+                        position=np.array(target_pos),
+                        # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 0, 1), -90)),
+                        scale=np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units(),
+                        color=random.choice(self.target_colors),
+                )
+                # prim_pad = prims.create_prim(
+                #     prim_path="/World/"+block_name,
+                #     prim_type="Xform",
+                #     position=np.array([x, y, DROPZONE_Z+0.001]),
+                #     orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 0, 1), -90)),
+                #     scale=np.array([1.0, 1.0, 1.0]),
+                #     # usd_path="/home/gstrazds/workspaces/sim_experiments/SimEnvs/assets/madara_pad.usd",
+                #     usd_path="/home/gstrazds/workspaces/sim_experiments/SimEnvs/assets/pad_v3.usd",
+            # )
+
         def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
+            self.add_target_objects(scene)
 
-    class TableTask3(UR10MultiPickPlace):
+    class TableTask3(TableTask2):
         """Task using UR10 robot to pick-place multiple cubes.
 
         Args:
@@ -95,7 +136,7 @@ def main() -> None:
 
         def __init__(
             self,
-            name: str = "table_task_3",
+            task_name: str = "table_task_3",
             initial_positions=None,
             initial_orientations=None,
             obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
@@ -103,7 +144,7 @@ def main() -> None:
             offset: Optional[np.ndarray] = None,
         ) -> None:
             super().__init__(
-                task_name=name,
+                task_name=task_name,
                 initial_positions=initial_positions,
                 initial_orientations=initial_orientations,
                 stack_target_position=stack_target_position,
@@ -111,7 +152,8 @@ def main() -> None:
                 offset=offset,
             )
 
-            self._packing_bin = None
+            self.target_asset_type="disc"
+            self.target_colors=["purple", "cyan", "black", "yellow"]
             self._assets_root_path = get_assets_root_path_or_die()
             if self._assets_root_path is None:
                 carb.log_error("Could not find Isaac Sim assets folder")
@@ -121,6 +163,10 @@ def main() -> None:
 
         def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
+            self.add_target_objects(scene)
+
+        # def add_target_objects(self, scene):
+        #     return
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Choose the task to run.")
@@ -143,7 +189,6 @@ def main() -> None:
         my_task = TableTask2(
             initial_positions=cube_initial_positions,
             obj_size=cube_size,
-            # stack_target_position=stack_target_position,
         )
     else:
         # Define bin constants
@@ -166,7 +211,6 @@ def main() -> None:
         my_task = TableTask3(
             initial_positions=np.array(_cube_initial_positions),
             obj_size=cube_size,
-            # stack_target_position=stack_target_position,
         )
 
     my_world.add_task(my_task)
