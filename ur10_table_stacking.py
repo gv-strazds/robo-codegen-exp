@@ -50,7 +50,6 @@ def main() -> None:
         DROPZONE_X, DROPZONE_Y, DROPZONE_Z,
     )
     from stacking_task import UR10MultiPickPlace
-    from asset_utils import add_prim_asset
 
     DROPZONE_GRID_WIDTH = 3
     DROPZONE_GRID_HEIGHT = 4
@@ -97,6 +96,8 @@ def main() -> None:
             self.target_asset_type="cube"
             self.target_colors=["blue"]
             self._target_positions = [[x, y, DROPZONE_Z+0.001+BLOCK_SIZE/2] for y in DROPZONE_GRID_YS for x in DROPZONE_GRID_XS]
+            # Explicit target scale separate from source object size
+            self._target_scale = np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units()
             self._assets_root_path = get_assets_root_path_or_die()
             if self._assets_root_path is None:
                 carb.log_error("Could not find Isaac Sim assets folder")
@@ -104,28 +105,9 @@ def main() -> None:
             omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
             return
 
-        def add_target_objects(self, scene: Scene) -> None:
-            for i, target_pos in enumerate(self._target_positions):
-                block_name=f"target_{i+1}"
-                add_prim_asset(scene, asset_type=self.target_asset_type, obj_name=block_name, prim_path="/World/"+block_name,
-                        position=np.array(target_pos),
-                        # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 0, 1), -90)),
-                        scale=np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units(),
-                        color=random.choice(self.target_colors),
-                )
-                # prim_pad = prims.create_prim(
-                #     prim_path="/World/"+block_name,
-                #     prim_type="Xform",
-                #     position=np.array([x, y, DROPZONE_Z+0.001]),
-                #     orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 0, 1), -90)),
-                #     scale=np.array([1.0, 1.0, 1.0]),
-                #     # usd_path="/home/gstrazds/workspaces/sim_experiments/SimEnvs/assets/madara_pad.usd",
-                #     usd_path="/home/gstrazds/workspaces/sim_experiments/SimEnvs/assets/pad_v3.usd",
-            # )
 
         def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
-            self.add_target_objects(scene)
 
     class TableTask3(TableTask2):
         """Task using UR10 robot to pick-place multiple cubes.
@@ -163,10 +145,7 @@ def main() -> None:
 
         def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
-            self.add_target_objects(scene)
 
-        # def add_target_objects(self, scene):
-        #     return
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Choose the task to run.")

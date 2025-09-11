@@ -124,6 +124,7 @@ def add_prim_asset(scene,
         color_value = np.array(COLOR_MAP[color.lower()].value)
     else:
         color_value = np.array(BasicColor.RED.value)
+    # omni.log.warn(f"add_prim_asset: {asset_type} {obj_name} {obj_prim_path}")
     prim = scene.add(
             PRIMS_MAP[asset_type](
                 name=obj_name,

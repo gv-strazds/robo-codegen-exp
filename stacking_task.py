@@ -16,6 +16,7 @@
 # from abc import ABC, abstractmethod
 from typing import List, Optional
 import numpy as np
+import random
 import isaacsim.core.api.tasks as tasks  # tasks.BaseTask, tasks.PickPlace, 
 import isaacsim.robot.manipulators.controllers as manipulators_controllers
 # from isaacsim.core.api.tasks import BaseTask
@@ -84,19 +85,19 @@ class UR10MultiPickPlace(tasks.BaseTask):
 
         # BEGIN --- isaacsim.core.api.tasks.Stacking (BaseStacking)
         # INCLUDED in ur10_table_scene .usd  #scene.add_default_ground_plane() z_position=-0.5)
-        self.add_source_objects(scene)
         self._robot = self.set_robot()
         scene.add(self._robot)
         self._task_objects[self._robot.name] = self._robot
-        self._move_task_objects_to_their_frame()
         # END --- isaacsim.core.api.tasks.Stacking (BaseStacking)
         self.setup_workspace(scene)
+        self.add_source_objects(scene)
+        self.add_target_objects(scene)
+        self._move_task_objects_to_their_frame()
 
     def add_source_objects(self, scene: Scene) -> None:
         """Add source (pickable) objects to the scene.
 
-        Mirrors the style of TableTask2.add_target_objects() and uses
-        asset_utils.add_prim_asset for object creation.
+        uses asset_utils.add_prim_asset for object creation.
         """
         for i in range(self._num_of_pick_objs):
             color = np.random.uniform(size=(3,))
@@ -116,8 +117,38 @@ class UR10MultiPickPlace(tasks.BaseTask):
             self._pick_objs.append(prim)
             self._task_objects[prim.name] = prim
 
-    def setup_table(self, scene:Scene):
-        return
+    def add_target_objects(self, scene: Scene) -> None:
+        """Add target/drop-off objects to the scene.
+
+        Subclasses should define:
+        - self._target_positions: iterable of [x, y, z]
+        - self.target_asset_type: string in asset_utils.PRIMS_MAP (e.g., "cube", "disc")
+        - self.target_colors: list of color names or RGB triples
+
+        Uses self._obj_size for scale unless self._target_scale exists.
+        Populates self._target_objs and self._task_objects; updates count.
+        """
+        if not hasattr(self, "_target_positions") or self._target_positions is None:
+            return
+        asset_type = getattr(self, "target_asset_type", "cube")
+        colors = getattr(self, "target_colors", ["blue"])  # defaults
+        target_scale = getattr(self, "_target_scale", self._obj_size)
+        self._target_objs = []
+        for i, target_pos in enumerate(self._target_positions):
+            block_name = f"target_{i+1}"
+            prim = add_prim_asset(
+                scene,
+                asset_type=asset_type,
+                obj_name=block_name,
+                prim_path="/World/" + block_name,
+                position=np.array(target_pos),
+                orientation=None,
+                scale=target_scale,
+                color=random.choice(colors),
+            )
+            self._target_objs.append(prim)
+            self._task_objects[prim.name] = prim
+        self._num_of_target_objs = len(self._target_objs)
 
     def set_robot(self) -> UR10:
         """[summary]
@@ -234,7 +265,7 @@ class UR10MultiPickPlace(tasks.BaseTask):
         return
 
     def task_step(self):
-        observations = self.get_observations()  #merges observations from all currently running tasks
+        observations = self.get_observations()
         actions = self._task_controller.forward(
             observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
         )
@@ -305,8 +336,8 @@ class UR10MultiPickPlace(tasks.BaseTask):
             obj_name = self._pick_objs[i].name
             obj_position, obj_orientation = self._pick_objs[i].get_local_pose()
             target_obj = self._scene.get_object(f"target_{i+1}")
-            target_name = target_obj.name
             if target_obj:
+                target_name = target_obj.name
                 target_obj_pos, target_obj_orientation = target_obj.get_world_pose()
                 target_position = np.array(
                     [
@@ -316,6 +347,7 @@ class UR10MultiPickPlace(tasks.BaseTask):
                     ]
                 )
             else:
+                target_name = None
                 target_orientation = None
                 if self._stack_target_position is not None:
                     target_position = np.array(
