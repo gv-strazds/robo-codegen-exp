@@ -125,7 +125,7 @@ args = parser.parse_args()
 CUBE_SIZE_X = 0.0515
 CUBE_SIZE_Y = 0.0515
 CUBE_SIZE_Z = 0.0515
-CUBE_POS_Z = CUBE_SIZE_Z/2
+CUBE_POS_Z = CUBE_SIZE_Z/2 + 0.025
 
 my_world = World(stage_units_in_meters=1.0)
 cube_size = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units()
@@ -141,10 +141,10 @@ from table_setup import BIN_X_COORD, BIN_Y_COORD, BIN_Z_COORD, BIN_SIZE, TABLETO
 bin_width = BIN_SIZE[0]
 bin_height = BIN_SIZE[1]
 
-min_x = BIN_X_COORD - bin_width / 2
-max_x = BIN_X_COORD + bin_width / 2
-min_y = BIN_Y_COORD - bin_height / 2
-max_y = BIN_Y_COORD + bin_height / 2
+min_x = BIN_X_COORD - bin_width / 2 + 0.05
+max_x = BIN_X_COORD + bin_width / 2 - 0.05
+min_y = BIN_Y_COORD - bin_height / 2 + 0.05
+max_y = BIN_Y_COORD + bin_height / 2 - 0.05
 
 # Create a 3x3 grid of cube positions
 x_coords = np.linspace(min_x + CUBE_SIZE_X, max_x - CUBE_SIZE_X, 3)

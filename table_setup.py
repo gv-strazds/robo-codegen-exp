@@ -48,9 +48,9 @@ UR_COORDS = np.array([0.0, 0.0, 0.0])  # position of the base of the robot
 # UR_Y_COORD = 0.0 #-0.3
 # UR_Z_COORD = 0.0 #1.05
 
-# coordinates of UR Robot (before shifting everyting to put robot at origin)
-UR_X_COORD_0 = 1.0
-UR_Y_COORD_0 = -0.3
+# coordinates of UR Robot (relative to Franka robot; before shifting everyting relative to UR robot at origin)
+UR_X_COORD_0 = 0.8 #1.0
+UR_Y_COORD_0 = -0.5 #-0.3
 UR_Z_COORD_0 = -GROUND_PLANE_Z_OFFSET # height of the base of the robot above the ground plane
 
 
@@ -61,7 +61,7 @@ TABLETOP_HEIGHT = TABLETOP_Z_COORD - GROUND_PLANE_Z_OFFSET  # height of the top 
 TABLE_LENGTH = 1.2
 TABLE_WIDTH = 0.7
 TABLE_SIZE = np.array([TABLE_WIDTH, TABLE_LENGTH, TABLE_THICKNESS])
-TABLETOP_CENTER_POINT = np.array([-0.01-UR_X_COORD_0, -0.17-UR_Y_COORD_0, TABLETOP_Z_COORD])
+TABLETOP_CENTER_POINT = np.array([-0.01-UR_X_COORD_0, -0.17-UR_Y_COORD_0, TABLETOP_Z_COORD])  # 
 TABLE_COORDS = TABLETOP_CENTER_POINT - [0, 0, TABLE_THICKNESS/2]
 
 
@@ -223,11 +223,11 @@ def setup_two_tables(scene:Scene, assets_root_path=None) -> None:
         + "/Isaac/Props/YCB/Axis_Aligned_Physics/006_mustard_bottle.usd",
     )
 
-    if False:
+    if True: #False:
         bin_prim = prims.create_prim(
             prim_path="/KLT_Bin",
             prim_type="Xform",
-            position=np.array([BIN_X_COORD, BIN_Y_COORD, TABLETOP_Z_COORD+0.23]),
+            position=np.array([BIN_X_COORD, BIN_Y_COORD, TABLETOP_Z_COORD+0.05]),
             # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
             scale=np.array(BIN_SCALE),  # a shallow bin, to make it easier to pick up the bottles
             usd_path=assets_root_path + "/Isaac/Props/KLT_Bin/small_KLT.usd",
