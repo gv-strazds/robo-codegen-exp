@@ -44,13 +44,10 @@ from pxr import Gf, UsdGeom  # noqa E402
 GROUND_PLANE_Z_OFFSET = -0.5
 
 UR_COORDS = np.array([0.0, 0.0, 0.0])  # position of the base of the robot
-# UR_X_COORD = 0.0 #1.0
-# UR_Y_COORD = 0.0 #-0.3
-# UR_Z_COORD = 0.0 #1.05
 
-# coordinates of UR Robot (relative to Franka robot; before shifting everyting relative to UR robot at origin)
-UR_X_COORD_0 = 0.8 #1.0
-UR_Y_COORD_0 = -0.5 #-0.3
+# coordinates of UR Robot (relative to Scene ; before shifting everyting relative to UR robot at origin)
+#UR_X_COORD_0 = 0.8 #1.0
+#UR_Y_COORD_0 = -0.5 #-0.3
 UR_Z_COORD_0 = -GROUND_PLANE_Z_OFFSET # height of the base of the robot above the ground plane
 
 
@@ -61,7 +58,7 @@ TABLETOP_HEIGHT = TABLETOP_Z_COORD - GROUND_PLANE_Z_OFFSET  # height of the top 
 TABLE_LENGTH = 1.2
 TABLE_WIDTH = 0.7
 TABLE_SIZE = np.array([TABLE_WIDTH, TABLE_LENGTH, TABLE_THICKNESS])
-TABLETOP_CENTER_POINT = np.array([-0.01-UR_X_COORD_0, -0.17-UR_Y_COORD_0, TABLETOP_Z_COORD])  # 
+TABLETOP_CENTER_POINT = np.array([-0.81, 0.33, TABLETOP_Z_COORD]) #[-0.01-UR_X_COORD_0, -0.17-UR_Y_COORD_0, TABLETOP_Z_COORD])  # 
 TABLE_COORDS = TABLETOP_CENTER_POINT - [0, 0, TABLE_THICKNESS/2]
 
 
@@ -80,9 +77,6 @@ def is_in_pick_region(x, y, z):
     return z >= TABLETOP_Z_COORD and \
            (PICK_REGION.min_y-0.3 < y < PICK_REGION.max_y+0.1) and \
            (PICK_REGION.min_x-0.05 < x < PICK_REGION.max_x+0.2)
-
-# def is_dropped(x, y, z):
-#     return z <= -UR_Z_COORD-UR_Z_COORD_0+0.02  # bottle is on the floor
 
 DROPZONE_X = 1.00-0.6
 DROPZONE_Y = -0.62+1.0
@@ -138,12 +132,9 @@ def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add
         assets_root_path = get_assets_root_path()
     # GroundPlane(prim_path="/World/groundPlane", size=3, color=np.array([0.1, 0.15, 0.25]))
 
-    # # Preparing stage
-    # viewports.set_camera_view(
-    #     eye=np.array([1.2-UR_X_COORD_0+0.6*3, 0.8-UR_Y_COORD_0+0.4*3, 1.4-UR_Z_COORD_0+0.3*3]),
-    #     target=np.array([0-UR_X_COORD_0, 0-UR_Y_COORD_0, 0.8-UR_Z_COORD_0]))
-
-    # PhysicsContext()
+    viewports.set_camera_view(
+        eye=np.array([0.5, 2.0, 1.2]),
+        target=TABLETOP_CENTER_POINT+[0.5, 0, 0])
 
     table = FixedCuboid(prim_path="/World/table",
         position=TABLE_COORDS,
@@ -208,16 +199,15 @@ def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add
             scene,
             asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/003_cracker_box.usd", 
             obj_name="cracker_box",
-            position=np.array([-0.2-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.15]),
+            position=TABLETOP_CENTER_POINT+[-0.19, -0.08, 0.15], #np.array([-0.2-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.15]),
             orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
             assets_root_path=assets_root_path
         )
-
         add_usd_asset(
             scene,
             asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/004_sugar_box.usd",
             obj_name="sugar_box",
-            position=np.array([-0.07-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.1]),
+            position=TABLETOP_CENTER_POINT+[-0.06, -0.08, 0.01], #np.array([-0.07-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.1]),
             orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 1, 0), -90)),
             assets_root_path=assets_root_path
         )
@@ -225,15 +215,15 @@ def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add
             scene,
             asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/005_tomato_soup_can.usd",
             obj_name="soup_can",
-            position=np.array([0.1-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.10]),
-        orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
+            position=TABLETOP_CENTER_POINT+[0.11, -0.08, 0.10], #np.array([0.1-UR_X_COORD_0, -0.25-UR_Y_COORD_0, TABLETOP_Z_COORD+0.10]),
+            orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
             assets_root_path=assets_root_path
         )
         add_usd_asset(
             scene,
             asset_path="/Isaac/Props/YCB/Axis_Aligned_Physics/006_mustard_bottle.usd",
             obj_name="mustard_bottle",
-            position=np.array([-0.065-UR_X_COORD_0, 0.065-UR_Y_COORD_0, TABLETOP_Z_COORD+0.12]),
+            position=TABLETOP_CENTER_POINT+[-0.055, 0.235, 0.12], #np.array([-0.065-UR_X_COORD_0, 0.065-UR_Y_COORD_0, TABLETOP_Z_COORD+0.12]),
             orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
             assets_root_path=assets_root_path
         )
