@@ -41,37 +41,45 @@ from isaacsim.core.utils import (  # noqa E402
 )
 from pxr import Gf, UsdGeom  # noqa E402
 
-UR_X_COORD = 0.0 #1.0
-UR_Y_COORD = 0.0 #-0.3
-UR_Z_COORD = 0.0 #1.05
+GROUND_PLANE_Z_OFFSET = -0.5
+
+UR_COORDS = np.array([0.0, 0.0, 0.0])  # position of the base of the robot
+# UR_X_COORD = 0.0 #1.0
+# UR_Y_COORD = 0.0 #-0.3
+# UR_Z_COORD = 0.0 #1.05
 
 # coordinates of UR Robot (before shifting everyting to put robot at origin)
 UR_X_COORD_0 = 1.0
 UR_Y_COORD_0 = -0.3
-UR_Z_COORD_0 = 1.05
+UR_Z_COORD_0 = -GROUND_PLANE_Z_OFFSET # height of the base of the robot above the ground plane
 
 
-Z_OFFSET = 0.8  # height of the table top upon which the objects are placed
-FRANKA_X = 0     - UR_X_COORD_0
-FRANKA_Y = -0.64 - UR_Y_COORD_0
-FRANKA_Z = Z_OFFSET - UR_Z_COORD_0
+TABLE_THICKNESS = 0.1
+TABLETOP_Z_OFFSET = 0.1 #-0.2  # height of the (top surface of the) table upon which the objects are placed, relative to the base of the robot
+TABLETOP_Z_COORD = UR_COORDS[2] + TABLETOP_Z_OFFSET
+TABLETOP_HEIGHT = TABLETOP_Z_COORD - GROUND_PLANE_Z_OFFSET  # height of the top surface of the table above the ground plane
+TABLE_LENGTH = 1.2
+TABLE_WIDTH = 0.7
+TABLE_SIZE = np.array([TABLE_WIDTH, TABLE_LENGTH, TABLE_THICKNESS])
+TABLETOP_CENTER_POINT = np.array([-0.01-UR_X_COORD_0, -0.17-UR_Y_COORD_0, TABLETOP_Z_COORD])
+TABLE_COORDS = TABLETOP_CENTER_POINT - [0, 0, TABLE_THICKNESS/2]
 
-TABLETOP_Z_COORD = Z_OFFSET - UR_Z_COORD_0
 
-BIN_X_COORD = 0.48-0.3 - UR_X_COORD_0
-BIN_Y_COORD = 0.115    - UR_Y_COORD_0
-BIN_Z_COORD = TABLETOP_Z_COORD
+BIN_COORDS = TABLETOP_CENTER_POINT + [0.19, 0.27, 0.1]
+BIN_X_COORD = BIN_COORDS[0]
+BIN_Y_COORD = BIN_COORDS[1]
+BIN_Z_COORD = BIN_COORDS[2] #
 BIN_SCALE = [1.5, 1.5, 0.5]
-BIN_SIZE = [ 0.5, 0.8, 0.05 ] # not correct, just a placeholder for now
+BIN_SIZE = [ 0.35, 0.5, 0.05 ] # not correct, just a placeholder for now
 
 Region2D = namedtuple('Region2D', ['min_x', 'max_x', 'min_y', 'max_y'])
 PICK_REGION = Region2D(BIN_X_COORD-BIN_SIZE[0]/2, BIN_X_COORD+BIN_SIZE[0]/2,
                        BIN_Y_COORD-BIN_SIZE[1]/2, BIN_Y_COORD+BIN_SIZE[1]/2)
 
 def is_in_pick_region(x, y, z):
-    return PICK_REGION.min_y < y+0.3 and y < PICK_REGION.max_y+0.1 \
-    and PICK_REGION.min_x < x+0.05 and x < PICK_REGION.max_x+0.2 \
-    and z > TABLETOP_Z_COORD
+    return z >= TABLETOP_Z_COORD and \
+           (PICK_REGION.min_y-0.3 < y < PICK_REGION.max_y+0.1) and \
+           (PICK_REGION.min_x-0.05 < x < PICK_REGION.max_x+0.2)
 
 # def is_dropped(x, y, z):
 #     return z <= -UR_Z_COORD-UR_Z_COORD_0+0.02  # bottle is on the floor
@@ -79,15 +87,10 @@ def is_in_pick_region(x, y, z):
 DROPZONE_X = 1.00-0.6
 DROPZONE_Y = -0.62+1.0
 DROPZONE_Z = 0 # -0.59374
-STACK_FULL = True
-if STACK_FULL:
-    DROPZONE_GRID_WIDTH = 3
-    DROPZONE_GRID_HEIGHT = 4
-    DROPZONE_GRID_DEPTH = 4
-else:
-    DROPZONE_GRID_WIDTH = 3
-    DROPZONE_GRID_HEIGHT = 2
-    DROPZONE_GRID_DEPTH = 2
+DROPZONE_GRID_WIDTH = 3
+DROPZONE_GRID_HEIGHT = 4
+DROPZONE_GRID_DEPTH = 4
+
 GRID_DX = -0.15
 x_shift = 0.05 - 0.2
 GRID_DY = 0.15
@@ -142,17 +145,15 @@ def setup_two_tables(scene:Scene, assets_root_path=None) -> None:
 
     # PhysicsContext()
 
-    TABLE_THICKNESS = 0.1
-    TABLE_CENTER_XY = (-0.01-UR_X_COORD_0, -0.17-UR_Y_COORD_0)
-
     table = FixedCuboid(prim_path="/World/table",
-        position=np.array([*TABLE_CENTER_XY, TABLETOP_Z_COORD-TABLE_THICKNESS/2]),
-        scale=np.array([.7, 1.2, TABLE_THICKNESS]),
-        color=np.array([.2, .3, 0.]))
+        position=TABLE_COORDS,
+        scale=TABLE_SIZE,
+        color=np.array([0.2, 0.3, 0.]))
 
+    _support_height = TABLETOP_HEIGHT-TABLE_THICKNESS/2
     table_support = VisualCuboid(prim_path="/World/table_support",
-        position=np.array([*TABLE_CENTER_XY, (Z_OFFSET-TABLE_THICKNESS)/2-UR_Z_COORD_0]),
-        scale=np.array([.3, .3, Z_OFFSET-TABLE_THICKNESS]),
+        position=TABLE_COORDS - [0, 0, _support_height/2],  # position is the cuboid center point
+        scale=np.array([.3, .3, _support_height]),
         color=np.array([.2, .3, 0.]))
 
     drop_zone = FixedCuboid(prim_path="/World/drop_zone",
@@ -222,26 +223,22 @@ def setup_two_tables(scene:Scene, assets_root_path=None) -> None:
         + "/Isaac/Props/YCB/Axis_Aligned_Physics/006_mustard_bottle.usd",
     )
 
-    bin_prim = prims.create_prim(
-        prim_path="/KLT_Bin",
-        prim_type="Xform",
-        position=np.array([BIN_X_COORD, BIN_Y_COORD, TABLETOP_Z_COORD+0.23]),
-        # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
-        scale=np.array(BIN_SCALE),  # a shallow bin, to make it easier to pick up the bottles
-        usd_path=assets_root_path + "/Isaac/Props/KLT_Bin/small_KLT.usd",
+    if False:
+        bin_prim = prims.create_prim(
+            prim_path="/KLT_Bin",
+            prim_type="Xform",
+            position=np.array([BIN_X_COORD, BIN_Y_COORD, TABLETOP_Z_COORD+0.23]),
+            # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
+            scale=np.array(BIN_SCALE),  # a shallow bin, to make it easier to pick up the bottles
+            usd_path=assets_root_path + "/Isaac/Props/KLT_Bin/small_KLT.usd",
     )
-
-    stand_support = VisualCuboid(prim_path="/World/stand_support",   # FixedCuboid if UR_mount needs support
-        position=np.array([UR_X_COORD, UR_Y_COORD, (UR_Z_COORD_0-0.5)/2-UR_Z_COORD_0]),
-        scale=np.array([.3, .3, UR_Z_COORD_0-0.5]),
-        color=np.array([.2, .3, 0.]))
 
     stand_prim = prims.create_prim(
         "/World/UR_mount",
         "Xform",
-        position=np.array([UR_X_COORD, UR_Y_COORD, UR_Z_COORD]),
+        position=UR_COORDS,
         # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90)),
-        scale=np.array([1.0, 1.0, 1.0]),
+        scale=np.array([1.0, 1.0, UR_Z_COORD_0]),
         usd_path=assets_root_path
         + "/Isaac/Props/Mounts/ur10_mount.usd",
     )

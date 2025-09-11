@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import numpy as np
 from typing import List, Optional
 
@@ -133,16 +134,12 @@ stack_target_position = np.array([0.4, 0.8, cube_size[2] / 2.0])
 stack_target_position[0] = stack_target_position[0] / get_stage_units()
 stack_target_position[1] = stack_target_position[1] / get_stage_units()
 
-# Define bin constants
-UR_X_COORD_0 = 1.0
-UR_Y_COORD_0 = -0.3
-BIN_X_COORD = 0.48 - 0.3 - UR_X_COORD_0
-BIN_Y_COORD = 0.115 - UR_Y_COORD_0
-BIN_SIZE = [0.5, 0.8, 0.05]
-BIN_SCALE = [1.5, 1.5, 0.5]
 
-bin_width = BIN_SIZE[0] * BIN_SCALE[0]
-bin_height = BIN_SIZE[1] * BIN_SCALE[1]
+from table_setup import BIN_X_COORD, BIN_Y_COORD, BIN_Z_COORD, BIN_SIZE, TABLETOP_Z_COORD
+# Define bin constants
+
+bin_width = BIN_SIZE[0]
+bin_height = BIN_SIZE[1]
 
 min_x = BIN_X_COORD - bin_width / 2
 max_x = BIN_X_COORD + bin_width / 2
@@ -156,7 +153,7 @@ y_coords = np.linspace(min_y + CUBE_SIZE_Y, max_y - CUBE_SIZE_Y, 3)
 new_cube_initial_positions = []
 for x in x_coords:
     for y in y_coords:
-        new_cube_initial_positions.append([x, y, CUBE_POS_Z])
+        new_cube_initial_positions.append([x, y, TABLETOP_Z_COORD+CUBE_POS_Z])
 
 new_cube_initial_positions = np.array(new_cube_initial_positions) / get_stage_units()
 
@@ -168,8 +165,8 @@ if args.task == "TableTask2":
         stack_target_position=stack_target_position)
 else:
     my_task = TableTask3(
-        obj_size=cube_size,
         initial_positions=new_cube_initial_positions,
+        obj_size=cube_size,
         stack_target_position=stack_target_position)
 
 my_world.add_task(my_task)
