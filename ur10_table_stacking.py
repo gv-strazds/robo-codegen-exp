@@ -16,7 +16,7 @@
 import argparse
 import numpy as np
 from typing import Optional
-import random
+ 
 
 def main() -> None:
     # Defer Isaac imports until after SimulationApp is created
@@ -40,116 +40,6 @@ def main() -> None:
     from isaacsim.robot.manipulators.grippers import SurfaceGripper
     from isaacsim.core.prims import SingleArticulation
 
-    from table_setup import (
-        setup_two_tables,
-        BIN_X_COORD,
-        BIN_Y_COORD,
-        BIN_Z_COORD,
-        BIN_SIZE,
-        TABLETOP_Z_COORD,
-        DROPZONE_X, DROPZONE_Y, DROPZONE_Z,
-    )
-    from stacking_task import UR10MultiPickPlace
-
-    DROPZONE_GRID_WIDTH = 3
-    DROPZONE_GRID_HEIGHT = 4
-    DROPZONE_GRID_DEPTH = 4
-
-    GRID_DX = -0.15
-    x_shift = 0.05 - 0.2
-    GRID_DY = 0.15
-    z_shift = 0.06
-    GRID_DZ = 0.135
-
-    DROPZONE_GRID_XS = [DROPZONE_X+i*GRID_DX+x_shift for i in range(DROPZONE_GRID_WIDTH)]  # [1.00, 0.79, 0.58])   
-    DROPZONE_GRID_YS = [DROPZONE_Y+(i*GRID_DY) for i in range(DROPZONE_GRID_HEIGHT)]  #[-0.62, -0.31, 0]
-    h = GRID_DZ
-    DROPZONE_GRID_ZS = [DROPZONE_Z + ((i) * h) + h / 2 + z_shift for i in range(DROPZONE_GRID_DEPTH)]
-    BLOCK_SIZE=0.0515
-
-    class TableTask2(UR10MultiPickPlace):
-        """Task using UR10 robot to pick-place multiple cubes.
-
-        Args:
-            name (str, optional): Task name identifier. Should be unique if added to the World.
-        """
-
-        def __init__(
-            self,
-            task_name: str = "table_task_2",
-            initial_positions=None,
-            initial_orientations=None,
-            target_positions=None,
-            obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
-            stack_target_position: Optional[np.ndarray] = None,
-            offset: Optional[np.ndarray] = None,
-        ) -> None:
-            super().__init__(
-                task_name=task_name,
-                initial_positions=initial_positions,
-                initial_orientations=initial_orientations,
-                stack_target_position=stack_target_position,
-                obj_size=obj_size,
-                offset=offset,
-            )
-
-            self.target_asset_type="cube"
-            self.target_colors=["blue"]
-            self._target_positions = [[x, y, DROPZONE_Z+0.001+BLOCK_SIZE/2] for y in DROPZONE_GRID_YS for x in DROPZONE_GRID_XS]
-            # Explicit target scale separate from source object size
-            self._target_scale = np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units()
-            self._assets_root_path = get_assets_root_path_or_die()
-            if self._assets_root_path is None:
-                carb.log_error("Could not find Isaac Sim assets folder")
-                return
-            omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
-            return
-
-
-        def setup_workspace(self, scene: Scene) -> None:
-            setup_two_tables(scene, self._assets_root_path)
-
-    class TableTask3(UR10MultiPickPlace):
-        """Task using UR10 robot to pick-place multiple cubes.
-
-        Args:
-            name (str, optional): Task name identifier. Should be unique if added to the World.
-        """
-
-        def __init__(
-            self,
-            task_name: str = "table_task_3",
-            initial_positions=None,
-            initial_orientations=None,
-            obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
-            stack_target_position: Optional[np.ndarray] = None,
-            offset: Optional[np.ndarray] = None,
-        ) -> None:
-            super().__init__(
-                task_name=task_name,
-                initial_positions=initial_positions,
-                initial_orientations=initial_orientations,
-                stack_target_position=stack_target_position,
-                obj_size=obj_size,
-                offset=offset,
-            )
-
-            # Targets: discs arranged in the same DROPZONE grid
-            self.target_asset_type = "disc"
-            self.target_colors = ["purple", "cyan", "black", "yellow"]
-            self._target_positions = [[x, y, DROPZONE_Z + 0.001 + BLOCK_SIZE / 2] for y in DROPZONE_GRID_YS for x in DROPZONE_GRID_XS]
-            self._target_scale = np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units()
-
-            self._assets_root_path = get_assets_root_path_or_die()
-            if self._assets_root_path is None:
-                carb.log_error("Could not find Isaac Sim assets folder")
-                return
-            omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
-            return
-
-        def setup_workspace(self, scene: Scene) -> None:
-            setup_two_tables(scene, self._assets_root_path)
-
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(description="Choose the task to run.")
@@ -166,6 +56,7 @@ def main() -> None:
     my_world = World(stage_units_in_meters=1.0)
     # Choose the task based on the command-line argument
     if args.task == "TableTask2":
+        from tasks.table_task2 import TableTask2
         cube_initial_positions = (
             np.array([[0.4, 0.3 + i*(cube_size[1] + 0.01), cube_size[2]/2] for i in range(7)]) / get_stage_units()
         )
@@ -174,6 +65,15 @@ def main() -> None:
             obj_size=cube_size,
         )
     else:
+        from table_setup import (
+            BIN_X_COORD,
+            BIN_Y_COORD,
+            BIN_Z_COORD,
+            BIN_SIZE,
+            TABLETOP_Z_COORD,
+        )
+        from tasks.table_task3 import TableTask3
+
         # Define bin constants
         bin_width = BIN_SIZE[0]
         bin_height = BIN_SIZE[1]
