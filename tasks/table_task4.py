@@ -43,8 +43,8 @@ class TableTask4(UR10MultiPickPlace):
         # Sources: cubes to be picked
         self.source_asset_type = "cube"
         # Targets: cylinders arranged in a circle
-        self.target_asset_type = "cylinder"
-        self.target_colors = ["pink"]
+        self.target_asset_type = "rect"
+        self.target_colors = ["yellow"]
         
         self._target_positions = generate_circular_positions(
             num_positions=8, radius=0.2, center=DROPZONE_CENTER_POINT, block_size=BLOCK_SIZE

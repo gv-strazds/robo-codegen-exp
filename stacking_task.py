@@ -18,7 +18,6 @@ from typing import List, Optional
 import numpy as np
 import random
 import isaacsim.core.api.tasks as tasks  # tasks.BaseTask, tasks.PickPlace, 
-import isaacsim.robot.manipulators.controllers as manipulators_controllers
 # from isaacsim.core.api.tasks import BaseTask
 
 from isaacsim.core.utils.prims import is_prim_path_valid
@@ -30,6 +29,7 @@ from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, VisualCuboid, 
 from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import (
     PickPlaceController,
 )
+from task_controllers import UR10MultiPickPlaceController
 from asset_utils import add_prim_asset
 
 
@@ -262,7 +262,7 @@ class UR10MultiPickPlace(tasks.BaseTask):
                 1.0 / 2,    # Return towards start
             ],
         )
-        self._task_controller = manipulators_controllers.StackingController(
+        self._task_controller = UR10MultiPickPlaceController(
             name=STACKING_CONTROLLER_NAME,
             pick_place_controller=pick_place_controller,
             picking_order_cube_names=self.get_obj_names(),
