@@ -24,33 +24,12 @@ class TableTask3(UR10MultiPickPlace):
             DROPZONE_X,
             DROPZONE_Y,
             DROPZONE_Z,
-        )
-
-        from table_setup import (
-            BIN_X_COORD,
-            BIN_Y_COORD,
-            BIN_Z_COORD,
-            BIN_SIZE,
-            TABLETOP_Z_COORD,
+            generate_grid_positions,
         )
 
         resolved_obj_size = obj_size if obj_size is not None else np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
         if initial_positions is None:
-            bin_width = BIN_SIZE[0]
-            bin_height = BIN_SIZE[1]
-
-            min_x = BIN_X_COORD - bin_width / 2 + 0.05
-            max_x = BIN_X_COORD + bin_width / 2 - 0.05
-            min_y = BIN_Y_COORD - bin_height / 2 + 0.05
-            max_y = BIN_Y_COORD + bin_height / 2 - 0.05
-
-            x_coords = np.linspace(min_x + resolved_obj_size[0], max_x - resolved_obj_size[0], 3)
-            y_coords = np.linspace(min_y + resolved_obj_size[1], max_y - resolved_obj_size[1], 3)
-
-            CUBE_POS_Z = resolved_obj_size[2] / 2 + 0.025
-            initial_positions = np.array(
-                [[x, y, TABLETOP_Z_COORD + CUBE_POS_Z] for x in x_coords for y in y_coords]
-            )
+            initial_positions = generate_grid_positions(obj_size=resolved_obj_size, rows=3, cols=3)
 
         super().__init__(
             task_name=task_name,

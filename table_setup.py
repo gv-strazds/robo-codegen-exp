@@ -199,4 +199,23 @@ def setup_two_tables(scene:Scene, assets_root_path=None, standard_objs=True, add
             scale=np.array(BIN_SCALE),  # a shallow bin, to make it easier to pick up the bottles
         )
 
+def generate_grid_positions(obj_size: np.ndarray, rows: int, cols: int) -> np.ndarray:
+    """Generates a grid of object positions within the pick-bin."""
+    from isaacsim.core.utils.stage import get_stage_units
 
+    bin_width = BIN_SIZE[0]
+    bin_height = BIN_SIZE[1]
+
+    min_x = BIN_X_COORD - bin_width / 2 + 0.05
+    max_x = BIN_X_COORD + bin_width / 2 - 0.05
+    min_y = BIN_Y_COORD - bin_height / 2 + 0.05
+    max_y = BIN_Y_COORD + bin_height / 2 - 0.05
+
+    x_coords = np.linspace(min_x + obj_size[0], max_x - obj_size[0], cols)
+    y_coords = np.linspace(min_y + obj_size[1], max_y - obj_size[1], rows)
+
+    CUBE_POS_Z = obj_size[2] / 2 + 0.025  # Start a bit higher, above the floor of the picking bin
+    initial_positions = np.array(
+        [[x, y, TABLETOP_Z_COORD + CUBE_POS_Z] for x in x_coords for y in y_coords]
+    )
+    return initial_positions
