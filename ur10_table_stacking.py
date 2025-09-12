@@ -45,9 +45,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Choose the task to run.")
     parser.add_argument(
         "--task",
-        choices=["TableTask2", "TableTask3"],
-        default="TableTask3",
-        help="Specify the task to run: TableTask2 or TableTask3.",
+        choices=["TableTask2", "TableTask3", "TableTask4"],
+        default="TableTask4",
+        help="Specify the task to run: TableTask2, TableTask3, or TableTask4.",
     )
     args = parser.parse_args()
 
@@ -59,10 +59,14 @@ def main() -> None:
         from tasks.table_task2 import TableTask2
 
         my_task = TableTask2(obj_size=cube_size)
-    else:
+    elif args.task == "TableTask3":
         from tasks.table_task3 import TableTask3
 
         my_task = TableTask3(obj_size=cube_size)
+    else:
+        from tasks.table_task4 import TableTask4
+
+        my_task = TableTask4(obj_size=cube_size)
 
     my_world.add_task(my_task)
     my_world.reset()

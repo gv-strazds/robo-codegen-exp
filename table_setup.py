@@ -66,6 +66,10 @@ DROPZONE_X = 1.00-0.6
 DROPZONE_Y = -0.62+1.0
 DROPZONE_Z = 0 # -0.59374
 
+DROPZONE_CENTER_X = DROPZONE_X + .05 - 0.2 - (2 * 0.21) / 2
+DROPZONE_CENTER_Y = DROPZONE_Y + (2 * 0.31) / 2
+DROPZONE_CENTER_POINT = np.array([DROPZONE_CENTER_X, DROPZONE_CENTER_Y, DROPZONE_Z])
+
 BIN_COORDS = TABLETOP_CENTER_POINT + [0.19, 0.27, 0.1]
 BIN_X_COORD = BIN_COORDS[0]
 BIN_Y_COORD = BIN_COORDS[1]
@@ -233,3 +237,14 @@ def generate_target_positions(grid_width: int, grid_height: int, block_size: flo
         [x, y, DROPZONE_Z + 0.001 + block_size / 2] for y in dropzone_grid_ys for x in dropzone_grid_xs
     ]
     return target_positions
+
+def generate_circular_positions(num_positions: int, radius: float, center: np.ndarray, block_size: float) -> list[list[float]]:
+    """Generates a circle of target positions in the dropzone."""
+    positions = []
+    for i in range(num_positions):
+        angle = 2 * math.pi * i / num_positions
+        x = center[0] + radius * math.cos(angle)
+        y = center[1] + radius * math.sin(angle)
+        z = DROPZONE_Z + 0.001 + block_size / 2
+        positions.append([x, y, z])
+    return positions
