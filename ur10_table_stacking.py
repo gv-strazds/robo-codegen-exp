@@ -109,7 +109,7 @@ def main() -> None:
         def setup_workspace(self, scene: Scene) -> None:
             setup_two_tables(scene, self._assets_root_path)
 
-    class TableTask3(TableTask2):
+    class TableTask3(UR10MultiPickPlace):
         """Task using UR10 robot to pick-place multiple cubes.
 
         Args:
@@ -134,8 +134,12 @@ def main() -> None:
                 offset=offset,
             )
 
-            self.target_asset_type="disc"
-            self.target_colors=["purple", "cyan", "black", "yellow"]
+            # Targets: discs arranged in the same DROPZONE grid
+            self.target_asset_type = "disc"
+            self.target_colors = ["purple", "cyan", "black", "yellow"]
+            self._target_positions = [[x, y, DROPZONE_Z + 0.001 + BLOCK_SIZE / 2] for y in DROPZONE_GRID_YS for x in DROPZONE_GRID_XS]
+            self._target_scale = np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units()
+
             self._assets_root_path = get_assets_root_path_or_die()
             if self._assets_root_path is None:
                 carb.log_error("Could not find Isaac Sim assets folder")
