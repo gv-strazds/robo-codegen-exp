@@ -15,223 +15,86 @@
 
 import argparse
 import numpy as np
-from typing import List, Optional
+from typing import Optional
+ 
 
-from isaacsim import SimulationApp
+def main() -> None:
+    # Defer Isaac imports until after SimulationApp is created
+    from isaacsim import SimulationApp
 
-simulation_app = SimulationApp({"headless": False})
+    simulation_app = SimulationApp({"headless": False})
 
-import carb
-import omni.log
+    import carb
+    import omni.log
 
-from isaacsim.cortex.framework.cortex_utils import get_assets_root_path_or_die
+    from isaacsim.cortex.framework.cortex_utils import get_assets_root_path_or_die
 
-from isaacsim.core.api import World
-from isaacsim.core.api.scenes.scene import Scene
-from isaacsim.core.utils.stage import add_reference_to_stage, get_stage_units
-import isaacsim.robot.manipulators.controllers as manipulators_controllers
-# from isaacsim.robot.manipulators.examples.universal_robots.controllers import StackingController
-from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import PickPlaceController
-from isaacsim.robot.manipulators.grippers import SurfaceGripper
-from isaacsim.core.prims import SingleArticulation
-
-from table_setup import setup_two_tables #, random_bottle_spawn_transform
-
-from task_stacking import UR10MultiPickPlace
-class TableTask2(UR10MultiPickPlace):
-    """Task using UR10 robot to pick-place multiple cubes.
-
-    Args:
-        name (str, optional): Task name identifier. Should be unique if added to the World. Defaults to "bin_filling".
-    """
-
-    def __init__(self,
-                name: str = "table_task_2",
-                initial_positions=np.array([[0.4, 0.3, 0.03], [0.45, 0.6, 0.03]]) / get_stage_units(),
-                initial_orientations=None,
-                obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
-                stack_target_position: Optional[np.ndarray] = None,
-                offset: Optional[np.ndarray] = None,
-        ) -> None:
-        super().__init__(
-            task_name= name,
-            initial_positions=initial_positions,
-            initial_orientations=initial_orientations,
-            stack_target_position=stack_target_position,
-            obj_size=obj_size,
-            offset=offset,
-            )
-
-        self._packing_bin = None
-        self._assets_root_path = get_assets_root_path_or_die()
-        if self._assets_root_path is None:
-            carb.log_error("Could not find Isaac Sim assets folder")
-            return
-        # self._bottle_asset_paths = [
-        #     self._assets_root_path + "/Isaac/Props/Flip_Stack/large_corner_bracket_physics.usd",
-        #     self._assets_root_path + "/Isaac/Props/Flip_Stack/screw_95_physics.usd",
-        #     self._assets_root_path + "/Isaac/Props/Flip_Stack/screw_99_physics.usd",
-        #     self._assets_root_path + "/Isaac/Props/Flip_Stack/small_corner_bracket_physics.usd",
-        #     self._assets_root_path + "/Isaac/Props/Flip_Stack/t_connector_physics.usd",
-        # ]
-        omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
-        return
-
-    def setup_table(self, scene: Scene) -> None:
-        setup_two_tables(scene, self._assets_root_path)
+    from isaacsim.core.api import World
+    from isaacsim.core.api.scenes.scene import Scene
+    from isaacsim.core.utils.stage import add_reference_to_stage, get_stage_units
+    import isaacsim.robot.manipulators.controllers as manipulators_controllers
+    # from isaacsim.robot.manipulators.examples.universal_robots.controllers import StackingController
+    from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import (
+        PickPlaceController,
+    )
+    from isaacsim.robot.manipulators.grippers import SurfaceGripper
+    from isaacsim.core.prims import SingleArticulation
 
 
-class TableTask3(UR10MultiPickPlace):
-    """Task using UR10 robot to pick-place multiple cubes.
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Choose the task to run.")
+    parser.add_argument(
+        "--task",
+        choices=["TableTask2", "TableTask3", "TableTask4"],
+        default="TableTask4",
+        help="Specify the task to run: TableTask2, TableTask3, or TableTask4.",
+    )
+    args = parser.parse_args()
 
-    Args:
-        name (str, optional): Task name identifier. Should be unique if added to the World. Defaults to "bin_filling".
-    """
+    cube_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
 
-    def __init__(self,
-                name: str = "table_task_3",
-                initial_positions=np.array([[0.4, 0.3, 0.03], [0.45, 0.6, 0.03]]) / get_stage_units(),
-                initial_orientations=None,
-                obj_size: Optional[np.ndarray] = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
-                stack_target_position: Optional[np.ndarray] = None,
-                offset: Optional[np.ndarray] = None,
-        ) -> None:
-        super().__init__(
-            task_name= name,
-            initial_positions=initial_positions,
-            initial_orientations=initial_orientations,
-            stack_target_position=stack_target_position,
-            obj_size=obj_size,
-            offset=offset,
-            )
+    my_world = World(stage_units_in_meters=1.0)
+    # Choose the task based on the command-line argument
+    if args.task == "TableTask2":
+        from tasks.table_task2 import TableTask2
 
-        self._packing_bin = None
-        self._assets_root_path = get_assets_root_path_or_die()
-        if self._assets_root_path is None:
-            carb.log_error("Could not find Isaac Sim assets folder")
-            return
-        omni.log.warn(f"TableTask init stack_target_position={self._stack_target_position}")
-        return
+        my_task = TableTask2(obj_size=cube_size)
+    elif args.task == "TableTask3":
+        from tasks.table_task3 import TableTask3
 
-    def setup_table(self, scene: Scene) -> None:
-        setup_two_tables(scene, self._assets_root_path)
+        my_task = TableTask3(obj_size=cube_size)
+    else:
+        from tasks.table_task4 import TableTask4
 
+        my_task = TableTask4(obj_size=cube_size)
 
-# Parse command-line arguments
-parser = argparse.ArgumentParser(description="Choose the task to run.")
-parser.add_argument("--task", choices=["TableTask2", "TableTask3"], default="TableTask3", help="Specify the task to run: TableTask2 or TableTask3.")
-args = parser.parse_args()
+    my_world.add_task(my_task)
+    my_world.reset()
 
-CUBE_SIZE_X = 0.0515
-CUBE_SIZE_Y = 0.0515
-CUBE_SIZE_Z = 0.0515
-CUBE_POS_Z = CUBE_SIZE_Z/2
+    reset_needed = False
+    while simulation_app.is_running():
+        my_world.step(render=True)  # invokes Task.pre_step() on all tasks, then Simulation.step()
+        if my_world.is_stopped() and not reset_needed:
+            reset_needed = True
+        if my_world.is_playing():
+            if reset_needed:
+                my_world.reset()
+                # my_controller.reset()
+                reset_needed = False
+            current_tasks = my_world.get_current_tasks()
+            for task_name in current_tasks:
+                task = current_tasks[task_name]
+                if hasattr(task,"task_step"):
+                    task.task_step()
+            # The following has been moved into UR10MultiPickPlace.task_step()
+            # observations = my_world.get_observations()  #merges observations from all currently running tasks
+            # actions = my_controller.forward(
+            #     observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
+            # )
+            # articulation_controller.apply_action(actions)
 
-my_world = World(stage_units_in_meters=1.0)
-cube_size = np.array([CUBE_SIZE_X, CUBE_SIZE_Y, CUBE_SIZE_Z]) / get_stage_units()
-cube_initial_positions = np.array([[0.4, 0.3+i*(CUBE_SIZE_Y+0.01), CUBE_POS_Z] for i in range(7)]) / get_stage_units()
-stack_target_position = np.array([0.4, 0.8, cube_size[2] / 2.0])
-stack_target_position[0] = stack_target_position[0] / get_stage_units()
-stack_target_position[1] = stack_target_position[1] / get_stage_units()
-
-# Define bin constants
-UR_X_COORD_0 = 1.0
-UR_Y_COORD_0 = -0.3
-BIN_X_COORD = 0.48 - 0.3 - UR_X_COORD_0
-BIN_Y_COORD = 0.115 - UR_Y_COORD_0
-BIN_SIZE = [0.5, 0.8, 0.05]
-BIN_SCALE = [1.5, 1.5, 0.5]
-
-bin_width = BIN_SIZE[0] * BIN_SCALE[0]
-bin_height = BIN_SIZE[1] * BIN_SCALE[1]
-
-min_x = BIN_X_COORD - bin_width / 2
-max_x = BIN_X_COORD + bin_width / 2
-min_y = BIN_Y_COORD - bin_height / 2
-max_y = BIN_Y_COORD + bin_height / 2
-
-# Create a 3x3 grid of cube positions
-x_coords = np.linspace(min_x + CUBE_SIZE_X, max_x - CUBE_SIZE_X, 3)
-y_coords = np.linspace(min_y + CUBE_SIZE_Y, max_y - CUBE_SIZE_Y, 3)
-
-new_cube_initial_positions = []
-for x in x_coords:
-    for y in y_coords:
-        new_cube_initial_positions.append([x, y, CUBE_POS_Z])
-
-new_cube_initial_positions = np.array(new_cube_initial_positions) / get_stage_units()
-
-# Choose the task based on the command-line argument
-if args.task == "TableTask2":
-    my_task = TableTask2(
-        initial_positions=cube_initial_positions,
-        obj_size=cube_size,
-        stack_target_position=stack_target_position)
-else:
-    my_task = TableTask3(
-        obj_size=cube_size,
-        initial_positions=new_cube_initial_positions,
-        stack_target_position=stack_target_position)
-
-my_world.add_task(my_task)
-my_world.reset()
-robot_name = my_task.get_params()["robot_name"]["value"]
-my_ur10 = my_world.scene.get_object(robot_name)
-
-STACKING_CONTROLLER_NAME = "ur10_stacking_controller"
-pick_place_controller=PickPlaceController(
-    name=STACKING_CONTROLLER_NAME + "_pick_place_controller",
-    gripper=my_ur10.gripper,robot_articulation=my_ur10,
-    events_dt=[
-        1.0/125,  #0.008,  # Move above obj
-        1.0/100,  #0.01,   # Down  (slower: 1.0/200,  #0.005)
-        1.0/10,   #0.1,    # Wait for inertia to settle
-        1.0/4,    #0.25,   # Close gripper
-        1.0/50,   #0.02,   # Lift
-        1.0/200,  #0.005,  # Move above target
-        1.0/100,  #0.01,   # Down
-        1.0,      #1.0,    # Release gripper
-        1.0/50,   #0.02,   # Move up
-        1.0/2,  #0.08    # ? (begin to) Return to start pos
-    ]
-)
-my_controller = manipulators_controllers.StackingController(
-            name=STACKING_CONTROLLER_NAME,
-            pick_place_controller=pick_place_controller,
-            picking_order_cube_names=my_task.get_obj_names(),
-            robot_observation_name=robot_name,
-        )
-# StackingController(
-#     name="stacking_controller",
-#     gripper=my_ur10.gripper,
-#     robot_articulation=my_ur10,
-#     picking_order_cube_names=my_task.get_cube_names(),
-#     robot_observation_name=robot_name,
-# )
-articulation_controller = my_ur10.get_articulation_controller()
-
-i = 0
-reset_needed = False
-while simulation_app.is_running():
-    my_world.step(render=True)
-    if my_world.is_stopped() and not reset_needed:
-        reset_needed = True
-    if my_world.is_playing():
-        if reset_needed:
-            my_world.reset()
-            my_controller.reset()
-            reset_needed = False
-        observations = my_world.get_observations()
-        _picking_order_cube_names = my_controller._picking_order_cube_names
-        _current_cube = my_controller._current_cube
-        omni.log.warn(f"" \
-            f'picking_position={observations[_picking_order_cube_names[_current_cube]]["position"]}\n'\
-            f'placing_position={observations[_picking_order_cube_names[_current_cube]]["target_position"]}\n'\
-            f'end_effector_position={observations[robot_name]["end_effector_position"]}\n')
-            # end_effector_offset=end_effector_offset,
+    simulation_app.close()
 
 
-        actions = my_controller.forward(observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02]))
-        articulation_controller.apply_action(actions)
-
-simulation_app.close()
+if __name__ == "__main__":
+    main()

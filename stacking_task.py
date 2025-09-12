@@ -17,8 +17,7 @@
 from typing import List, Optional
 import numpy as np
 
-import omni.log
-
+import random
 import isaacsim.core.api.tasks as tasks  # tasks.BaseTask, tasks.PickPlace, 
 # from isaacsim.core.api.tasks import BaseTask
 
@@ -28,6 +27,12 @@ from isaacsim.core.api.scenes.scene import Scene
 from isaacsim.core.utils.string import find_unique_string_name
 from isaacsim.robot.manipulators.examples.universal_robots import UR10
 from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, VisualCuboid, DynamicCylinder
+from isaacsim.robot.manipulators.examples.universal_robots.controllers.pick_place_controller import (
+    PickPlaceController,
+)
+from task_controllers import UR10MultiPickPlaceController
+from asset_utils import add_prim_asset
+
 
 class UR10MultiPickPlace(tasks.BaseTask):
     """[summary]
@@ -48,9 +53,6 @@ class UR10MultiPickPlace(tasks.BaseTask):
         obj_size: Optional[np.ndarray] = None,
         offset: Optional[np.ndarray] = None,
     ) -> None:
-        if stack_target_position is None:
-            stack_target_position = np.array([0.7, 0.7, 0]) / get_stage_units()
-
         # BEGIN --- isaacsim.core.api.tasks.Stacking (BaseStacking) .__init__
         super().__init__(name=task_name, offset=offset) #super=isaacsim.core.api.tasks.BaseTask
         self._robot = None
@@ -63,9 +65,8 @@ class UR10MultiPickPlace(tasks.BaseTask):
         self._obj_size = obj_size
         if self._obj_size is None:
             self._obj_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
-        if stack_target_position is None:
-            self._stack_target_position = np.array([-0.3, -0.3, 0]) / get_stage_units()
-        self._stack_target_position = self._stack_target_position + self._offset
+        if stack_target_position is not None:
+            self._stack_target_position = self._stack_target_position + self._offset
         self._pick_objs = []
         self._target_objs = []
         self._num_of_target_objs = 0
@@ -85,44 +86,78 @@ class UR10MultiPickPlace(tasks.BaseTask):
 
         # BEGIN --- isaacsim.core.api.tasks.Stacking (BaseStacking)
         # INCLUDED in ur10_table_scene .usd  #scene.add_default_ground_plane() z_position=-0.5)
-        for i in range(self._num_of_pick_objs):
-            color = np.random.uniform(size=(3,))
-            cube_prim_path = find_unique_string_name(
-                initial_name="/World/Cube", is_unique_fn=lambda x: not is_prim_path_valid(x)
-            )
-            obj_name = find_unique_string_name(
-                initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x)
-            )
-            self._pick_objs.append(
-                scene.add(
-                    DynamicCuboid(
-                        name=obj_name,
-                        position=self._initial_positions[i],
-                        orientation=self._initial_orientations[i],
-                        prim_path=cube_prim_path,
-                        scale=self._obj_size,
-                        size=1.0,
-                        color=color,
-                    )
-                )
-            )
-            self._task_objects[self._pick_objs[-1].name] = self._pick_objs[-1]
         self._robot = self.set_robot()
         scene.add(self._robot)
         self._task_objects[self._robot.name] = self._robot
-        self._move_task_objects_to_their_frame()
         # END --- isaacsim.core.api.tasks.Stacking (BaseStacking)
-        self.setup_table(scene)
+        self.setup_workspace(scene)
+        self.add_source_objects(scene)
+        self.add_target_objects(scene)
+        self._move_task_objects_to_their_frame()
 
-    def setup_table(self, scene:Scene):
-        DROPZONE_X = 1.0-0.6+0.2
-        DROPZONE_Y = 1.0-0.62
-        DROPZONE_Z = 0 # -0.59374
-        TABLE_THICKNESS = 0.1
-        drop_zone = FixedCuboid(prim_path="/World/drop_zone",
-            position=np.array([DROPZONE_X+.05-0.2-(2*0.21)/2, DROPZONE_Y+(2*0.31)/2, DROPZONE_Z-TABLE_THICKNESS/2]),
-            scale=np.array([0.21*3*2, (0.31*3), TABLE_THICKNESS]),
-            color=np.array([.2, 0, .3]))
+    def add_source_objects(self, scene: Scene) -> None:
+        """Add source (pickable) objects to the scene.
+
+        - Uses ``asset_utils.add_prim_asset`` for object creation.
+        - Honors optional ``self.source_asset_type`` (defaults to "cube").
+        - If ``self.source_colors`` is provided, randomly selects from it; otherwise random RGB.
+        - Names objects using the selected ``asset_type`` as the base (e.g., "disc_01").
+        """
+        asset_type = getattr(self, "source_asset_type", "cube")
+        source_colors = getattr(self, "source_colors", None)
+        for i in range(self._num_of_pick_objs):
+            if source_colors is None:
+                color = np.random.uniform(size=(3,))
+            else:
+                color = random.choice(source_colors)
+            obj_name = find_unique_string_name(
+                initial_name=asset_type, is_unique_fn=lambda x: not self.scene.object_exists(x)
+            )
+            prim = add_prim_asset(
+                scene,
+                asset_type=asset_type,
+                obj_name=obj_name,
+                position=self._initial_positions[i],
+                orientation=self._initial_orientations[i],
+                scale=self._obj_size,
+                scene_path_root="/World/",
+                color=color,
+            )
+            self._pick_objs.append(prim)
+            self._task_objects[prim.name] = prim
+
+    def add_target_objects(self, scene: Scene) -> None:
+        """Add target/drop-off objects to the scene.
+
+        Subclasses should define:
+        - self._target_positions: iterable of [x, y, z]
+        - self.target_asset_type: string in asset_utils.PRIMS_MAP (e.g., "cube", "disc")
+        - self.target_colors: list of color names or RGB triples
+
+        Uses self._obj_size for scale unless self._target_scale exists.
+        Populates self._target_objs and self._task_objects; updates count.
+        """
+        if not hasattr(self, "_target_positions") or self._target_positions is None:
+            return
+        asset_type = getattr(self, "target_asset_type", "cube")
+        colors = getattr(self, "target_colors", ["blue"])  # defaults
+        target_scale = getattr(self, "_target_scale", self._obj_size)
+        self._target_objs = []
+        for i, target_pos in enumerate(self._target_positions):
+            block_name = f"target_{i+1}"
+            prim = add_prim_asset(
+                scene,
+                asset_type=asset_type,
+                obj_name=block_name,
+                prim_path="/World/" + block_name,
+                position=np.array(target_pos),
+                orientation=None,
+                scale=target_scale,
+                color=random.choice(colors),
+            )
+            self._target_objs.append(prim)
+            self._task_objects[prim.name] = prim
+        self._num_of_target_objs = len(self._target_objs)
 
     def set_robot(self) -> UR10:
         """[summary]
@@ -208,6 +243,42 @@ class UR10MultiPickPlace(tasks.BaseTask):
         from isaacsim.robot.manipulators.grippers.parallel_gripper import ParallelGripper
         if isinstance(self._robot.gripper, ParallelGripper):
             self._robot.gripper.set_joint_positions(self._robot.gripper.joint_opened_positions)
+        my_ur10 = self._robot
+
+        STACKING_CONTROLLER_NAME = "ur10_stacking_controller"
+        pick_place_controller = PickPlaceController(
+            name=STACKING_CONTROLLER_NAME + "_pick_place_controller",
+            gripper=my_ur10.gripper,
+            robot_articulation=my_ur10,
+            events_dt=[
+                1.0 / 125,  # Move above obj
+                1.0 / 100,  # Down
+                1.0 / 10,   # Wait
+                1.0 / 4,    # Close gripper
+                1.0 / 50,   # Lift
+                1.0 / 200,  # Move above target
+                1.0 / 100,  # Down
+                1.0,        # Release gripper
+                1.0 / 50,   # Move up
+                1.0 / 2,    # Return towards start
+            ],
+        )
+        self._task_controller = UR10MultiPickPlaceController(
+            name=STACKING_CONTROLLER_NAME,
+            pick_place_controller=pick_place_controller,
+            picking_order_cube_names=self.get_obj_names(),
+            robot_observation_name=self._robot.name,
+        )
+        self._articulation_controller = self._robot.get_articulation_controller()
+        self._task_controller.reset()
+        return
+
+    def task_step(self):
+        observations = self.get_observations()
+        actions = self._task_controller.forward(
+            observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
+        )
+        self._articulation_controller.apply_action(actions)
         return
 
     def get_obj_names(self) -> List[str]:
@@ -274,8 +345,8 @@ class UR10MultiPickPlace(tasks.BaseTask):
             obj_name = self._pick_objs[i].name
             obj_position, obj_orientation = self._pick_objs[i].get_local_pose()
             target_obj = self._scene.get_object(f"target_{i+1}")
-            target_name = target_obj.name
             if target_obj:
+                target_name = target_obj.name
                 target_obj_pos, target_obj_orientation = target_obj.get_world_pose()
                 target_position = np.array(
                     [
@@ -285,14 +356,18 @@ class UR10MultiPickPlace(tasks.BaseTask):
                     ]
                 )
             else:
+                target_name = None
                 target_orientation = None
-                target_position = np.array(
-                    [
-                        self._stack_target_position[0],
-                        self._stack_target_position[1],
-                        (self._obj_size[2] * i) + self._obj_size[2] / 2.0,
-                    ]
-                )
+                if self._stack_target_position is not None:
+                    target_position = np.array(
+                        [
+                            self._stack_target_position[0],
+                            self._stack_target_position[1],
+                            (self._obj_size[2] * i) + self._obj_size[2] / 2.0,
+                        ]
+                    )
+                else:
+                    target_position = np.array([0.3, 0.3, 0]) / get_stage_units()
             observations[self._pick_objs[i].name] = {
                 "position": obj_position,
                 "orientation": obj_orientation,
@@ -301,119 +376,3 @@ class UR10MultiPickPlace(tasks.BaseTask):
                 "target_orientation": target_obj_orientation,
             }
         return observations
-
-
-class UR10PickPlaceTask(tasks.PickPlace):
-    """[summary]
-
-    Args:
-        name (str, optional): [description]. Defaults to "ur10_pick_place".
-        cube_initial_position (Optional[np.ndarray], optional): [description]. Defaults to None.
-        cube_initial_orientation (Optional[np.ndarray], optional): [description]. Defaults to None.
-        target_position (Optional[np.ndarray], optional): [description]. Defaults to None.
-        cube_size (Optional[np.ndarray], optional): [description]. Defaults to None.
-        offset (Optional[np.ndarray], optional): [description]. Defaults to None.
-    """
-
-    def __init__(
-        self,
-        name: str = "ur10_pick_place",
-        cube_initial_position: Optional[np.ndarray] = None,
-        cube_initial_orientation: Optional[np.ndarray] = None,
-        target_position: Optional[np.ndarray] = None,
-        cube_size: Optional[np.ndarray] = None,
-        offset: Optional[np.ndarray] = None,
-    ) -> None:
-        if cube_size is None:
-            cube_size = np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
-        if target_position is None:
-            target_position = np.array([0.7, 0.7, cube_size[2] / 2.0])
-            target_position[0] = target_position[0] / get_stage_units()
-            target_position[1] = target_position[1] / get_stage_units()
-        super().__init__(
-            name=name,
-            cube_initial_position=cube_initial_position,
-            cube_initial_orientation=cube_initial_orientation,
-            target_position=target_position,
-            cube_size=cube_size,
-            offset=offset,
-        )
-        self._ur10_asset_path = "/home/gstrazds/workspaces/sim_experiments/SimEnvs/" \
-            "Collected_ur10_bin_filling/ur10_bin_filling.usd"
-        return
-
-    def set_up_scene(self, scene: Scene) -> None:
-        """Loads the stage USD and adds the robot and packing bin to the World's scene.
-
-        Args:
-            scene (Scene): The world's scene.
-        """
-        # super().set_up_scene(scene)
-        self._scene = scene  # isaacsim.core.api.tasks.BaseTask
-        # BEGIN ---- isaacsim.core.api.tasks.PickPlace:
-        # INCLUDED in ur10_table_scene .usd  #scene.add_default_ground_plane() z_position=-0.5)
-        cube_prim_path = find_unique_string_name(
-            initial_name="/World/Cube", is_unique_fn=lambda x: not is_prim_path_valid(x)
-        )
-        cube_name = find_unique_string_name(initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x))
-        self._cube = scene.add(
-            DynamicCuboid(
-                name=cube_name,
-                position=self._cube_initial_position,
-                orientation=self._cube_initial_orientation,
-                prim_path=cube_prim_path,
-                scale=self._cube_size,
-                size=1.0,
-                color=np.array([1, 1, 0]),
-            )
-        )
-        self._task_objects[self._cube.name] = self._cube
-        self._robot = self.set_robot()
-        scene.add(self._robot)
-        self._task_objects[self._robot.name] = self._robot
-        self._move_task_objects_to_their_frame()
-        # END --- isaacsim.core.api.tasks.PickPlace
-        self.setup_table(scene)
-
-    def setup_table(self, scene:Scene):
-        DROPZONE_X = 1.0-0.6+0.2
-        DROPZONE_Y = 1.0-0.62
-        DROPZONE_Z = 0 # -0.59374
-        TABLE_THICKNESS = 0.1
-        drop_zone = FixedCuboid(prim_path="/World/drop_zone",
-            position=np.array([DROPZONE_X+.05-0.2-(2*0.21)/2, DROPZONE_Y+(2*0.31)/2, DROPZONE_Z-TABLE_THICKNESS/2]),
-            scale=np.array([0.21*3*2, (0.31*3), TABLE_THICKNESS]),
-            color=np.array([.2, 0, .3]))
-
-    def set_robot(self) -> UR10:
-        """[summary]
-
-        Returns:
-            UR10: [description]
-        """
-        add_reference_to_stage(usd_path=self._ur10_asset_path, prim_path="/World/Scene")
-        self._ur10_robot = UR10(prim_path="/World/Scene/ur10", name="my_ur10", attach_gripper=True)
-
-        self._ur10_robot.set_joints_default_state(
-            positions=np.array([-np.pi / 2, -np.pi / 2, -np.pi / 2, -np.pi / 2, np.pi / 2, 0])
-        )
-        return self._ur10_robot
-
-    def pre_step(self, time_step_index: int, simulation_time: float) -> None:
-        """[summary]
-
-        Args:
-            time_step_index (int): [description]
-            simulation_time (float): [description]
-        """
-        tasks.PickPlace.pre_step(self, time_step_index=time_step_index, simulation_time=simulation_time)
-        self._ur10_robot.gripper.update()
-        return
-
-    def get_observations(self) -> dict:
-        obs = super().get_observations()
-        if "my_ur10" in obs:
-            end_effector_position, end_effector_orientation = self._ur10_robot.end_effector.get_world_pose()
-            obs["my_ur10"]["end_effector_orientation"] = end_effector_orientation
-        return obs
-
