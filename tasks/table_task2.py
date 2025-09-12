@@ -28,12 +28,19 @@ class TableTask2(UR10MultiPickPlace):
             DROPZONE_Z,
         )
 
+        resolved_obj_size = obj_size if obj_size is not None else np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
+        if initial_positions is None:
+            initial_positions = (
+                np.array([[0.4, 0.3 + i * (resolved_obj_size[1] + 0.01), resolved_obj_size[2] / 2] for i in range(7)])
+                / get_stage_units()
+            )
+
         super().__init__(
             task_name=task_name,
             initial_positions=initial_positions,
             initial_orientations=initial_orientations,
             stack_target_position=stack_target_position,
-            obj_size=obj_size if obj_size is not None else np.array([0.0515, 0.0515, 0.0515]) / get_stage_units(),
+            obj_size=resolved_obj_size,
             offset=offset,
         )
 

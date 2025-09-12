@@ -57,44 +57,12 @@ def main() -> None:
     # Choose the task based on the command-line argument
     if args.task == "TableTask2":
         from tasks.table_task2 import TableTask2
-        cube_initial_positions = (
-            np.array([[0.4, 0.3 + i*(cube_size[1] + 0.01), cube_size[2]/2] for i in range(7)]) / get_stage_units()
-        )
-        my_task = TableTask2(
-            initial_positions=cube_initial_positions,
-            obj_size=cube_size,
-        )
+
+        my_task = TableTask2(obj_size=cube_size)
     else:
-        from table_setup import (
-            BIN_X_COORD,
-            BIN_Y_COORD,
-            BIN_Z_COORD,
-            BIN_SIZE,
-            TABLETOP_Z_COORD,
-        )
         from tasks.table_task3 import TableTask3
 
-        # Define bin constants
-        bin_width = BIN_SIZE[0]
-        bin_height = BIN_SIZE[1]
-
-        min_x = BIN_X_COORD - bin_width / 2 + 0.05
-        max_x = BIN_X_COORD + bin_width / 2 - 0.05
-        min_y = BIN_Y_COORD - bin_height / 2 + 0.05
-        max_y = BIN_Y_COORD + bin_height / 2 - 0.05
-
-        # Create a 3x3 grid of cube positions
-        x_coords = np.linspace(min_x + cube_size[0], max_x - cube_size[0], 3)
-        y_coords = np.linspace(min_y + cube_size[1], max_y - cube_size[1], 3)
-
-        CUBE_POS_Z = cube_size[2]/2 + 0.025  # Start a bit higher, above the floor of the picking bin
-        _cube_initial_positions = [
-            [x, y, TABLETOP_Z_COORD + CUBE_POS_Z] for x in x_coords for y in y_coords]
-
-        my_task = TableTask3(
-            initial_positions=np.array(_cube_initial_positions),
-            obj_size=cube_size,
-        )
+        my_task = TableTask3(obj_size=cube_size)
 
     my_world.add_task(my_task)
     my_world.reset()
