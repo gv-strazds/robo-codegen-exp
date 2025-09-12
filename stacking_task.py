@@ -70,6 +70,8 @@ class UR10MultiPickPlace(tasks.BaseTask):
         self._pick_objs = []
         self._target_objs = []
         self._num_of_target_objs = 0
+        # Track if this task has completed (either placed all picks or exhausted targets)
+        self._task_done = False
         # END --- isaacsim.core.api.tasks.Stacking (BaseStacking) .__init__
         self._ur10_asset_path = "/home/gstrazds/workspaces/sim_experiments/SimEnvs/" \
             "Collected_ur10_bin_filling/ur10_bin_filling.usd"
@@ -244,6 +246,8 @@ class UR10MultiPickPlace(tasks.BaseTask):
         if isinstance(self._robot.gripper, ParallelGripper):
             self._robot.gripper.set_joint_positions(self._robot.gripper.joint_opened_positions)
         my_ur10 = self._robot
+        # Reset task completion flag on reset
+        self._task_done = False
 
         STACKING_CONTROLLER_NAME = "ur10_stacking_controller"
         pick_place_controller = PickPlaceController(
@@ -274,6 +278,21 @@ class UR10MultiPickPlace(tasks.BaseTask):
         return
 
     def task_step(self):
+        # If task already completed, do nothing
+        if self._task_done:
+            return
+
+        # If controller reports done (all picks placed or targets exhausted), mark task finished
+        if self._task_controller.is_done():
+            # One-time warning log to signal task completion
+            try:
+                import omni.log
+                omni.log.warn(f"Task '{self._name}' has finished.")
+            except Exception:
+                pass
+            self._task_done = True
+            return
+
         observations = self.get_observations()
         actions = self._task_controller.forward(
             observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02])
@@ -315,15 +334,12 @@ class UR10MultiPickPlace(tasks.BaseTask):
         raise NotImplementedError
 
     def is_done(self) -> bool:
-        """[summary]
+        """Return True when the task has finished processing.
 
-        Raises:
-            NotImplementedError: [description]
-
-        Returns:
-            bool: [description]
+        This is set when the controller completes all picks or reports
+        exhaustion of target objects.
         """
-        raise NotImplementedError
+        return bool(getattr(self, "_task_done", False))
     # END ---  merge base class methods: isaacsim.core.api.tasks.Stacking
 
     # MODIFIED from base class(isaacsim.core.api.tasks.Stacking) method 
