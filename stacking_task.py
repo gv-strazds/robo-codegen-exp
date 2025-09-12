@@ -355,6 +355,7 @@ class UR10MultiPickPlace(tasks.BaseTask):
                         self._obj_size[2] * 1.5 # (obj_size_z + obj_size_z/2)
                     ]
                 )
+                target_orientation = target_obj_orientation
             else:
                 target_name = None
                 target_orientation = None
@@ -373,6 +374,6 @@ class UR10MultiPickPlace(tasks.BaseTask):
                 "orientation": obj_orientation,
                 "target_name": target_name,
                 "target_position": target_position,
-                "target_orientation": target_obj_orientation,
+                "target_orientation": target_orientation,
             }
         return observations
