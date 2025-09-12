@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import numpy as np
 from typing import List, Optional
 
@@ -221,6 +222,15 @@ while simulation_app.is_running():
             my_controller.reset()
             reset_needed = False
         observations = my_world.get_observations()
+        _picking_order_cube_names = my_controller._picking_order_cube_names
+        _current_cube = my_controller._current_cube
+        omni.log.warn(f"" \
+            f'picking_position={observations[_picking_order_cube_names[_current_cube]]["position"]}\n'\
+            f'placing_position={observations[_picking_order_cube_names[_current_cube]]["target_position"]}\n'\
+            f'end_effector_position={observations[robot_name]["end_effector_position"]}\n')
+            # end_effector_offset=end_effector_offset,
+
+
         actions = my_controller.forward(observations=observations, end_effector_offset=np.array([0.0, 0.0, 0.02]))
         articulation_controller.apply_action(actions)
 

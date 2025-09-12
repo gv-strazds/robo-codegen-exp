@@ -17,6 +17,8 @@
 from typing import List, Optional
 import numpy as np
 
+import omni.log
+
 import isaacsim.core.api.tasks as tasks  # tasks.BaseTask, tasks.PickPlace, 
 # from isaacsim.core.api.tasks import BaseTask
 
@@ -159,7 +161,7 @@ class UR10MultiPickPlace(tasks.BaseTask):
         # super() <-> isaacsim.core.api.tasks.Stacking(=BaseStacking)
         super().pre_step(time_step_index=time_step_index, simulation_time=simulation_time) #does nothing
         self._ur10_robot.gripper.update()
-        # END --- isaacsim.robot.manipulators.examples.universal_robots.tasks.Stacking
+        # END --- isaacsim.robot.manipulators.examples.universal_robots.tasks.Stacking 
         return
 
     # BEGIN ---  merge base class methods: isaacsim.core.api.tasks.Stacking(=BaseStacking)
