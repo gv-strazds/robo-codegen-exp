@@ -97,16 +97,24 @@ class UR10MultiPickPlace(tasks.BaseTask):
     def add_source_objects(self, scene: Scene) -> None:
         """Add source (pickable) objects to the scene.
 
-        uses asset_utils.add_prim_asset for object creation.
+        - Uses ``asset_utils.add_prim_asset`` for object creation.
+        - Honors optional ``self.source_asset_type`` (defaults to "cube").
+        - If ``self.source_colors`` is provided, randomly selects from it; otherwise random RGB.
+        - Names objects using the selected ``asset_type`` as the base (e.g., "disc_01").
         """
+        asset_type = getattr(self, "source_asset_type", "cube")
+        source_colors = getattr(self, "source_colors", None)
         for i in range(self._num_of_pick_objs):
-            color = np.random.uniform(size=(3,))
+            if source_colors is None:
+                color = np.random.uniform(size=(3,))
+            else:
+                color = random.choice(source_colors)
             obj_name = find_unique_string_name(
-                initial_name="cube", is_unique_fn=lambda x: not self.scene.object_exists(x)
+                initial_name=asset_type, is_unique_fn=lambda x: not self.scene.object_exists(x)
             )
             prim = add_prim_asset(
                 scene,
-                asset_type="cube",
+                asset_type=asset_type,
                 obj_name=obj_name,
                 position=self._initial_positions[i],
                 orientation=self._initial_orientations[i],

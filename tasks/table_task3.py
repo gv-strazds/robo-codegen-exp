@@ -5,7 +5,7 @@ from stacking_task import UR10MultiPickPlace
 
 
 class TableTask3(UR10MultiPickPlace):
-    """Task using UR10 robot to pick-place multiple discs."""
+    """Task using UR10 robot to pick balls and place on discs."""
 
     def __init__(
         self,
@@ -39,6 +39,10 @@ class TableTask3(UR10MultiPickPlace):
         )
 
         BLOCK_SIZE = 0.0515
+        # Sources: balls to be picked
+        self.source_asset_type = "ball"
+        # Optional: define colors for source balls (falls back to random RGB if omitted)
+        # self.source_colors = ["purple", "cyan", "black", "yellow"]
         # Targets: discs arranged in the DROPZONE grid
         self.target_asset_type = "disc"
         self.target_colors = ["purple", "cyan", "black", "yellow"]
@@ -58,5 +62,4 @@ class TableTask3(UR10MultiPickPlace):
         self._setup_two_tables(scene, self._assets_root_path)
         #self.add_source_objects(scene)  #invoked automatically by base class during set_up_scene(), after call to setup_workspace()
         #self.add_target_objects(scene)  #invoked automatically by base class during set_up_scene(), after call to setup_workspace()
-
 
