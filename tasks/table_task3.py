@@ -21,10 +21,8 @@ class TableTask3(UR10MultiPickPlace):
         from isaacsim.cortex.framework.cortex_utils import get_assets_root_path_or_die
         from table_setup import (
             setup_two_tables,
-            DROPZONE_X,
-            DROPZONE_Y,
-            DROPZONE_Z,
             generate_grid_positions,
+            generate_target_positions,
         )
 
         resolved_obj_size = obj_size if obj_size is not None else np.array([0.0515, 0.0515, 0.0515]) / get_stage_units()
@@ -40,24 +38,11 @@ class TableTask3(UR10MultiPickPlace):
             offset=offset,
         )
 
-        # Grid definition for target placement (mirrors TableTask2)
-        DROPZONE_GRID_WIDTH = 3
-        DROPZONE_GRID_HEIGHT = 4
-        GRID_DX = -0.15
-        GRID_DY = 0.15
-        x_shift = 0.05 - 0.2
-        z_shift = 0.06
-        GRID_DZ = 0.135
-        dropzone_grid_xs = [DROPZONE_X + i * GRID_DX + x_shift for i in range(DROPZONE_GRID_WIDTH)]
-        dropzone_grid_ys = [DROPZONE_Y + (i * GRID_DY) for i in range(DROPZONE_GRID_HEIGHT)]
-
         BLOCK_SIZE = 0.0515
         # Targets: discs arranged in the DROPZONE grid
         self.target_asset_type = "disc"
         self.target_colors = ["purple", "cyan", "black", "yellow"]
-        self._target_positions = [
-            [x, y, DROPZONE_Z + 0.001 + BLOCK_SIZE / 2] for y in dropzone_grid_ys for x in dropzone_grid_xs
-        ]
+        self._target_positions = generate_target_positions(grid_width=3, grid_height=4, block_size=BLOCK_SIZE)
         self._target_scale = np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units()
 
         self._assets_root_path = get_assets_root_path_or_die()

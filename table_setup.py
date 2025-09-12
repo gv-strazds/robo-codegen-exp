@@ -219,3 +219,17 @@ def generate_grid_positions(obj_size: np.ndarray, rows: int, cols: int) -> np.nd
         [[x, y, TABLETOP_Z_COORD + CUBE_POS_Z] for x in x_coords for y in y_coords]
     )
     return initial_positions
+
+def generate_target_positions(grid_width: int, grid_height: int, block_size: float) -> list[list[float]]:
+    """Generates a grid of target positions in the dropzone."""
+    GRID_DX = -0.15
+    GRID_DY = 0.15
+    x_shift = 0.05 - 0.2
+    
+    dropzone_grid_xs = [DROPZONE_X + i * GRID_DX + x_shift for i in range(grid_width)]
+    dropzone_grid_ys = [DROPZONE_Y + (i * GRID_DY) for i in range(grid_height)]
+
+    target_positions = [
+        [x, y, DROPZONE_Z + 0.001 + block_size / 2] for y in dropzone_grid_ys for x in dropzone_grid_xs
+    ]
+    return target_positions
