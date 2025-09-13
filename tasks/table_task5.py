@@ -52,10 +52,10 @@ class TableTask5(UR10MultiPickPlace):
         self.target_asset_type = "rect"
         self.target_colors = ["red"]
         self._target_positions = generate_circular_positions(
-            num_positions=6, radius=0.18, center=DROPZONE_CENTER_POINT, block_size=BLOCK_SIZE
+            num_positions=7, radius=0.18, center=DROPZONE_CENTER_POINT, block_size=BLOCK_SIZE
         )
         # Make rectangles wider and thin (on Z)
-        self._target_scale = np.array([BLOCK_SIZE * 1.8, BLOCK_SIZE * 0.9, BLOCK_SIZE * 0.02]) / get_stage_units()
+        # self._target_scale = np.array([BLOCK_SIZE * 1.8, BLOCK_SIZE * 0.9, BLOCK_SIZE * 0.02]) / get_stage_units()
 
         self._assets_root_path = get_assets_root_path_or_die()
         if self._assets_root_path is None:

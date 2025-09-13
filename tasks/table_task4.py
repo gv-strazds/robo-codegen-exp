@@ -47,7 +47,7 @@ class TableTask4(UR10MultiPickPlace):
         self.target_colors = ["yellow"]
         
         self._target_positions = generate_circular_positions(
-            num_positions=8, radius=0.2, center=DROPZONE_CENTER_POINT, block_size=BLOCK_SIZE
+            num_positions=6, radius=0.2, center=DROPZONE_CENTER_POINT, block_size=BLOCK_SIZE
         )
         self._target_scale = np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units()
 

@@ -1,5 +1,5 @@
-from enum import Enum
 import numpy as np
+from colors import *
 
 import omni.log
 from isaacsim.core.api.objects import DynamicCuboid, FixedCuboid, VisualCuboid, DynamicCylinder, DynamicSphere
@@ -17,37 +17,6 @@ from isaacsim.core.utils import (  # noqa E402
     viewports,
     # transformations
 )
-
-# enum for basic color values (RGB, 0-1 range)
-class BasicColor(Enum):
-    RED    = (1.0, 0.0, 0.0)
-    GREEN  = (0.0, 1.0, 0.0)
-    BLUE   = (0.0, 0.0, 1.0)
-    YELLOW = (1.0, 1.0, 0.0)
-    BLACK  = (0.0, 0.0, 0.0)
-    WHITE  = (1.0, 1.0, 1.0)
-    ORANGE = (1.0, 0.5, 0.0)
-    PURPLE = (0.5, 0.0, 0.5)
-    BROWN  = (0.6, 0.3, 0.1)
-    PINK   = (1.0, 0.4, 0.7)
-    GRAY   = (0.5, 0.5, 0.5)
-    CYAN   = (0.0, 1.0, 1.0)
-
-# Mapping from color name (lowercase) to the BasicColor enum value
-COLOR_MAP = {
-    "red": BasicColor.RED,
-    "green": BasicColor.GREEN,
-    "blue": BasicColor.BLUE,
-    "yellow": BasicColor.YELLOW,
-    "black": BasicColor.BLACK,
-    "white": BasicColor.WHITE,
-    "orange": BasicColor.ORANGE,
-    "purple": BasicColor.PURPLE,
-    "brown": BasicColor.BROWN,
-    "pink": BasicColor.PINK,
-    "gray": BasicColor.GRAY,
-    "cyan": BasicColor.CYAN
-}
 
 PRIMS_MAP = {
     "cube": DynamicCuboid,
@@ -137,15 +106,3 @@ def add_prim_asset(scene,
             )
         )
     return prim
-
-                # scene.add(
-                #     DynamicCuboid(
-                #         name=block_name,
-                #         position=np.array(target_pos),
-                #         # orientation=rotations.gf_rotation_to_np_array(Gf.Rotation(Gf.Vec3d(0, 0, 1), -90)),
-                #         prim_path="/World/"+block_name,
-                #         scale=np.array([BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE]) / get_stage_units(),
-                #         size=1.0,
-                #         color=np.array([0, 0, 1]),
-                #     )
-                # )

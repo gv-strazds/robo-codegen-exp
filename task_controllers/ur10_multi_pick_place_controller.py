@@ -4,15 +4,13 @@ from isaacsim.core.utils.types import ArticulationAction  # noqa: F401 (kept for
 from isaacsim.robot.manipulators.controllers import (
     StackingController as BaseStackingController,
 )
+#from isaacsim.core.api.controllers.base_controller import BaseController
 from isaacsim.robot.manipulators.controllers.pick_place_controller import PickPlaceController
 
 
 class UR10MultiPickPlaceController(BaseStackingController):
-    """UR10-specific thin wrapper around the base StackingController.
+    """UR10-specificwrapper around the base StackingController.
 
-    Currently identical in behavior to the base class. This class exists so we
-    can customize task-specific picking/placing logic without modifying the
-    reference controller implementation.
     """
 
     def __init__(
@@ -43,11 +41,11 @@ class UR10MultiPickPlaceController(BaseStackingController):
                 None
             ] * observations[self._robot_observation_name]["joint_positions"].shape[0]
             return ArticulationAction(joint_positions=target_joint_positions)
+
         # If already completed, defer to base behavior (no-op action)
         if self._current_cube >= len(self._picking_order_cube_names):
-            target_joint_positions = [
-                None
-            ] * observations[self._robot_observation_name]["joint_positions"].shape[0]
+            _num_joints = observations[self._robot_observation_name]["joint_positions"].shape[0]
+            target_joint_positions = [None] * _num_joints
             return ArticulationAction(joint_positions=target_joint_positions)
 
         # Check whether the current pick object has an associated target
